@@ -2,4 +2,7 @@
 ----> backbuffer (every resize we change only render visible part of backbuffer) 
 ----> create moving gradient in this backbuffer
 2. record mouse, key and controller input
-
+----> initialize sound buffer
+3. setup sound support
+4. print out f/s and ms/f
+----> establish an update_and_render() function

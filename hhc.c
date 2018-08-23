@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -22,6 +23,23 @@ int main(int argc, char** argv)
 
 	return EXIT_FAILURE;
   } 
+
+  if (Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+    SDL_LogCritical(
+	  SDL_LOG_CATEGORY_SYSTEM, 
+	  "Unable to initialize SDL mixer: %s", 
+	  Mix_GetError()
+	);  
+
+    SDL_Quit();
+
+	return EXIT_FAILURE;
+  }
+
+  Mix_Music* music = NULL;
+  music = Mix_LoadMUS("file.wav");
+  Mix_Chunk* effect = NULL;
+  effect = Mix_LoadWAV("file.wav");
 
   SDL_Window* window = NULL; 
   window = SDL_CreateWindow(
@@ -55,6 +73,9 @@ int main(int argc, char** argv)
     goto __cleanup;
   }
 
+  uint64_t perf_counter_freq = SDL_GetPeformanceFrequency(); // units per second
+  uint64_t prev_counter = SDL_GetPerformanceCounter(); // units
+
   const uint8_t* cur_keyboard_state = SDL_GetKeyboardState(NULL);
   const uint8_t* prev_keyboard_state = cur_keyboard_state;
 
@@ -79,23 +100,26 @@ int main(int argc, char** argv)
       switch (event.type) {
 	  case SDL_QUIT:
 	    want_to_run = false;
-	  case SDL_CONTROLLERDEVICEEVENT:
-	    switch (event.cdevice.type) {
-	    case SDL_CONTROLLERDEVICEDADDED:
-		  controller_indexes[num_controllers_connected++] = event.cdevice.which; 
-		  controllers[num_controllers_connected++] = SDL_GameControllerOpen(event.cdevice.which); 
-		case SDL_CONTROLLERDEVICEREMOVED:
-		  for (size_t controller_indexes_pos = 0; controller_indexes_pos < 4; ++controller_indexes_pos) {
-		    if (controller_indexes[controller_indexes_pos] == event.cdevice.which) {
-		      SDL_GameControllerClose(controllers[controller_indexes_pos]);
-			  --num_controllers_connected;
-			}
+		break;
+	  case SDL_CONTROLLERDEVICEADDED:
+		controller_indexes[num_controllers_connected++] = event.cdevice.which; 
+		controllers[num_controllers_connected++] = SDL_GameControllerOpen(event.cdevice.which); 
+		break;
+	  case SDL_CONTROLLERDEVICEREMOVED:
+		for (size_t controller_indexes_pos = 0; controller_indexes_pos < 4; ++controller_indexes_pos) {
+		  if (controller_indexes[controller_indexes_pos] == event.cdevice.which) {
+		    SDL_GameControllerClose(controllers[controller_indexes_pos]);
+		    --num_controllers_connected;
 		  }
+		}
+		break;
 	  case SDL_WINDOWEVENT:
 	    switch (event.window.event) {
 	    case SDL_WINDOWEVENT_CLOSE:
 		  want_to_run = false;
+		  break;
 		}  
+	    break;
 	  }
 
      prev_keyboard_state = cur_keyboard_state;
@@ -119,12 +143,19 @@ int main(int argc, char** argv)
 	  );
 	}
     SDL_RenderPresent(renderer);
+
+    // play sound here 
+
+    double ms_per_frame = 1000.0f * (counter / perf_count_frequency);
+	int fps = perf_count_frequency / counter;
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "%.02f ms/f, %.02f/s");
   } 
 
 __cleanup:
   if (window != NULL) SDL_DestroyWindow(window);  
   if (renderer != NULL) SDL_DestroyRenderer(renderer);
 
+  Mix_Quit();
   SDL_Quit();	  
   return EXIT_SUCCESS; 
 }

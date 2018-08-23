@@ -1,0 +1,29 @@
+entity.h:
+typedef struct Entity {
+  int id;
+  int component_set1;
+  int component_set2;
+}
+
+
+component.h:
+typedef enum COMPONENT_TYPE {
+  COMPONENT_SET1_RENDER = 1U << 0,
+  COMPONENT_SET1_KEYBOARD = 1U << 1,
+  ...
+  COMPONENT_SET2_UNKNOWN = 1U << 0
+}
+
+typedef struct Component {
+  COMPONENT_TYPE type;	
+  void* data;
+}
+
+system.h:
+typedef int (*system_init_func)(void* scene);
+
+typedef enum SYSTEM_TYPE {
+  SYSTEM_NONE, 
+  SYSTEM_MOVE,
+  SYSTEM_INPUT,
+};
