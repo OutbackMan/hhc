@@ -1,0 +1,5 @@
+1. logging, window, renderer, loop
+----> backbuffer (every resize we change only render visible part of backbuffer) 
+----> create moving gradient in this backbuffer
+2. record mouse, key and controller input
+
