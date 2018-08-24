@@ -1,0 +1,7 @@
+PLATFORM INDEPENDETNESS:
+native, browser
+prefix platform-specifics with hhc_platform_{name}
+
+MEMORY:
+Most games have many alloc/deallocs. The idea of handling errors by propagating is very difficult.
+Most assume that memory doesn't fail.

@@ -1,8 +1,8 @@
 entity.h:
 typedef struct Entity {
   int id;
-  int component_set1;
-  int component_set2;
+  COMPONENT_TYPE component_set1;
+  COMPONENT_TYPE component_set2;
 }
 
 
@@ -26,4 +26,50 @@ typedef enum SYSTEM_TYPE {
   SYSTEM_NONE, 
   SYSTEM_MOVE,
   SYSTEM_INPUT,
+  SYSTEM_RENDER_WORLD,
+  SYSTEM_CONTROL_ENTITY
 };
+
+// 2:08:00 for system func pointers (1/4 video)
+typedef struct System {
+  SYSTEM_TYPE type;	
+};
+
+scene.h:
+typedef struct Scene {
+  char name[MAX_SCENE_NAME_LENGTH];	
+
+  Entity* entities;
+  size_t num_entities;
+  size_t max_num_entities;
+
+  Component* components;
+  size_t num_components;
+  size_t max_num_components;
+
+  System* systems;
+  size_t num_systems;
+  size_t max_num_systems;
+  
+  bool mem_alloc_has_failed;
+  bool system_init_has_failed;
+  bool want_to_delete_scene;
+  bool want_to_exit_scene;
+  bool want_to_consume_less_cpu;
+
+  bool scene_has_mouse_component; 
+  bool scene_has_keyboard_component; 
+  bool have_components_been_reallocated;
+};
+
+Scene* create_scene(const char* name);
+void free_scene(Scene* scene);
+int add_entity_to_scene(Scene* scene, COMPONENT_TYPE component_set_1);
+int add_component_to_scene(Scene* scene, COMPONENT_TYPE component_type);
+void remove_entity_from_scene(Scene* scene, int entity_id);
+// .... getters and setters
+// 2:36:00
+
+
+
+

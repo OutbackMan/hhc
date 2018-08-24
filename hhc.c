@@ -5,6 +5,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "hhc.h"
+
+
 
 #define HHC_GLOBAL static
 
@@ -87,6 +90,7 @@ int main(int argc, char** argv)
   uint32_t prev_mouse_state = cur_mouse_state;
 
   // support rumble later
+  // add analog deadzone
   SDL_GameController *controllers[4] = {0}; 
   int32_t controller_indexes[4] = {0};
   uint8_t num_controllers_connected = 0;

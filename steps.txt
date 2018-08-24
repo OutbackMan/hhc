@@ -1,8 +1,9 @@
-1. logging, window, renderer, loop
+1. Segment based on platform
+2. logging, window, renderer, loop
 ----> backbuffer (every resize we change only render visible part of backbuffer) 
 ----> create moving gradient in this backbuffer
-2. record mouse, key and controller input
+3. record mouse, key and controller input
 ----> initialize sound buffer
-3. setup sound support
-4. print out f/s and ms/f
+4. setup sound support
+5. print out f/s and ms/f
 ----> establish an update_and_render() function
