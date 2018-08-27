@@ -6,31 +6,26 @@
 #include <SDL2/SDL_ttf.h>
 
 #include <stdbool.h>
+#include <stdlib.h>
 
 #if defined(__EMSCRIPTEN__)
 #include <emscripten/emscripten.h>
 #endif
 
-GLOBAL bool want_to_run = true;
-
 INTERNAL loop(void)
 {
-	
+
+#if defined(__EMSCRIPTEN__)
+  if (!global_want_to_run) {
+    emscripten_cancel_main_loop();	  
+  }
+#endif
 }
-
-int main(int argc, char** argv)
-{
-   
-
-emscripten_set_main_loop(loop, 0, 1);
-emscripten_cancel_main_loop();
-  return 0;	
-}
-
 
 int main(int argc, char** argv)
 {
   SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
+  int exit_status;
 
   if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
     SDL_LogCritical(
@@ -39,7 +34,8 @@ int main(int argc, char** argv)
 	  SDL_GetError()
 	);  
 
-	return EXIT_FAILURE;
+	exit_status = EXIT_FAILURE;
+	goto __exit;
   } 
 
   if (Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
@@ -49,15 +45,55 @@ int main(int argc, char** argv)
 	  Mix_GetError()
 	);  
 
-    SDL_Quit();
-
+	exit_status = EXIT_FAILURE;
+	goto __exit;
+  }
+  
+  if (IMG_Init()) {
+	  
+	SDL_Quit();
 	return EXIT_FAILURE;
   }
 
-  Mix_Music* music = NULL;
-  music = Mix_LoadMUS("file.wav");
-  Mix_Chunk* effect = NULL;
-  effect = Mix_LoadWAV("file.wav");
+  if (TTF_Init()) {
+	  
+  }
+
+  if ()
+
+  global_input = {
+    .cur_keyboard_state = SDL_GetKeyboardState(NULL),
+    .prev_keyboard_state = SDL_GetKeyboardState(NULL),
+    .cur_mouse_x = 0,
+    .cur_mouse_y = 0,
+    .prev_mouse_x = 0,
+    .prev_mouse_y = 0,
+	.cur_mouse_state = SDL_GetMouseState(NULL, NULL),
+	.prev_mouse_state = SDL_GetMouseState(NULL, NULL), 
+    .controllers = {NULL, NULL, NULL, NULL},
+	.num_controllers_connected = 0,
+	.controllers_haptic_support = {false, false, false, false},
+	._controller_indexes = {0, 0, 0, 0},
+  };
+
+  global_want_to_run = true;
+
+#if defined(__EMSCRIPTEN__)
+  emscripten_set_main_loop(loop, 0, 1);
+#else
+  while (global_want_to_run) {
+    loop();	  
+  }
+#endif
+
+  exit_status = EXIT_SUCCESS;
+
+__cleanup:
+  if (SDL_WasInit(SDL_INIT_EVERYTHING) != 0) SDL_Quit(); 
+
+
+  return exit_status;	
+}
 
   SDL_Window* window = NULL; 
   window = SDL_CreateWindow(
@@ -94,22 +130,6 @@ int main(int argc, char** argv)
   uint64_t perf_counter_freq = SDL_GetPeformanceFrequency(); // units per second
   uint64_t prev_counter = SDL_GetPerformanceCounter(); // units
 
-  const uint8_t* cur_keyboard_state = SDL_GetKeyboardState(NULL);
-  const uint8_t* prev_keyboard_state = cur_keyboard_state;
-
-  int cur_mouse_x = 0;
-  int cur_mouse_y = 0;
-  int prev_mouse_x = 0;
-  int prev_mouse_y = 0;
-  uint32_t cur_mouse_state = SDL_GetMouseState(NULL, NULL);
-  uint32_t prev_mouse_state = cur_mouse_state;
-
-  // support rumble later
-  // add analog deadzone
-  SDL_GameController *controllers[4] = {0}; 
-  int32_t controller_indexes[4] = {0};
-  uint8_t num_controllers_connected = 0;
-
   while (want_to_run) {
     SDL_Event event = {0}; 	  
 	while (SDL_PollEvent(&event)) {
@@ -121,8 +141,14 @@ int main(int argc, char** argv)
 	    want_to_run = false;
 		break;
 	  case SDL_CONTROLLERDEVICEADDED:
-		controller_indexes[num_controllers_connected++] = event.cdevice.which; 
-		controllers[num_controllers_connected++] = SDL_GameControllerOpen(event.cdevice.which); 
+	    if (input.num_controllers_connected != MAX_NUM_CONTROLLERS) {
+		  _InputController* controller = input.controllers[input.num_controllers_connected];
+
+		  controller->joystick_handle = SDL_JoystickOpen(event.cdevice.which);
+		  controller->haptic_handle = SDL_HapticOpenFromJoystick(controller->joystick_handle);
+		  SDL_HapticRumbleInit(controller->haptic_handle);
+          SDL_GameControllerOpen(event.cdevice.which); 
+		}
 		break;
 	  case SDL_CONTROLLERDEVICEREMOVED:
 		for (size_t controller_indexes_pos = 0; controller_indexes_pos < 4; ++controller_indexes_pos) {

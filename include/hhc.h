@@ -3,6 +3,8 @@
 
 #include <SDL2/SDL.h>
 
+#include <stdbool.h>
+#include <stdint.h>
 
 #define KILOBYTES(amount) ((amount) * 1024LL) 
 #define MEGABYTES(amount) (KILOBYTES(amount) * 1024LL) 
@@ -96,19 +98,39 @@
 #define FLATTEN
 #endif
 
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef int8_t int8;
+typedef int16_t int16;
+typedef int32_t int32;
+typedef int64_t int64;
+
+
 typedef struct _InputController {
-  SDL_GameController;	 // joystick and haptic
+  bool is_connected;
+  int joystick_index;	
 };
 
+#define MAX_NUM_CONTROLLERS 4
 typedef struct Input {
-  _InputController controllers[4]; 	
-  const Uint8* cur_keyboard_state;
-  const Uint8* prev_keyboard_state;
-  // keyboard, mouse and touch
+  const u8* cur_keyboard_state;
+  const u8* prev_keyboard_state;
+  int cur_mouse_x;
+  int cur_mouse_y;
+  int prev_mouse_x;
+  int prev_mouse_y;
+  u32 cur_mouse_state;
+  u32 prev_mouse_state;
+  _InputControllers controllers[4];
+  int num_controllers_connected;
 };
+extern struct Input global_input;
 
-typedef struct State {
-  int placeholder;	
-};
+extern bool global_want_to_run;
+
+// read_entire_file, write_to_entire_file
+// state
 
 #endif
