@@ -1,21 +1,26 @@
-typedef struct PlatformLayer {
-  bool is_initialized;
-  bool want_to_quit;
+#include <SDL2/SDL.h>
 
-  // error
-  SDL_Window* window;
-  SDL_Renderer* renderer;
+#include <stdbool.h>
+
+typedef struct PlatformLayer {
+  bool are_on_touch_platform;
+
+  PlatformLayer__Window* window;
+  PlatformLayer__Renderer* renderer;
 
   PlatformLayer__DigitalButton keys[256]; 
   PlatformLayer__Controllers controllers[4];
   PlatformLayer__Mouse mouse;
 
   PlatformLayer__Time time; 
+
+  PlatformLayer__Touches; // refer to unity api
+
+  char text[PLATFORM_LAYER_MAX_TEXT];
+  size_t text_length;
 } 
 
 typedef struct PlatformLayer__DigitalButton {
-  bool is_connected;
-  int joystick_index;	
 };
 
 #define MAX_NUM_CONTROLLERS 4
