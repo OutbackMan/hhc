@@ -1,5 +1,22 @@
 #include <SDL2/SDL.h>
 
+bool is_executing_on_desktop = true;
+
+#ifdef __EMSCRIPTEN__
+	is_executing_on_desktop = EM_ASM_INT({
+				return typeof window.orientation === 'undefined';
+			});
+#endif
+
+DigitalButton touches[5];
+size_t num_active_touches;
+
+manifest.json {
+  "display": "fullscreen",
+  "orientation": "landscape"
+}
+<link rel="manifest" href="manifest.json" />
+
 #include <stdbool.h>
 
 typedef struct PlatformLayer {
