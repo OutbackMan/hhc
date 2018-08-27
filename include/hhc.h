@@ -108,29 +108,4 @@ typedef int32_t int32;
 typedef int64_t int64;
 
 
-typedef struct _InputController {
-  bool is_connected;
-  int joystick_index;	
-};
-
-#define MAX_NUM_CONTROLLERS 4
-typedef struct Input {
-  const u8* cur_keyboard_state;
-  const u8* prev_keyboard_state;
-  int cur_mouse_x;
-  int cur_mouse_y;
-  int prev_mouse_x;
-  int prev_mouse_y;
-  u32 cur_mouse_state;
-  u32 prev_mouse_state;
-  _InputControllers controllers[4];
-  int num_controllers_connected;
-};
-extern struct Input global_input;
-
-extern bool global_want_to_run;
-
-// read_entire_file, write_to_entire_file
-// state
-
 #endif

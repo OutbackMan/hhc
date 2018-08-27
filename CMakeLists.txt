@@ -33,3 +33,7 @@ find_package(SDL2_ttf REQUIRED)
 target_include_directories(hhc PRIVATE ${SDL2_ttf_INCLUDE_DIRS})
 target_link_libraries(hhc PRIVATE ${SDL2_ttf_LIBRARIES})
 
+find_package(SDL2_net REQUIRED)
+target_include_directories(hhc PRIVATE ${SDL2_net_INCLUDE_DIRS})
+target_link_libraries(hhc PRIVATE ${SDL2_net_LIBRARIES})
+

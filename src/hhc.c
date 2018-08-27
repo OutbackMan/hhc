@@ -4,17 +4,102 @@
 #include <SDL2/SDL_mixer.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
-
-#include <stdbool.h>
-#include <stdlib.h>
+#include <SDL2/SDL_net.h>
 
 #if defined(__EMSCRIPTEN__)
 #include <emscripten/emscripten.h>
 #endif
 
+#include <stdbool.h>
+#include <stdlib.h>
+
+
 INTERNAL loop(void)
 {
+  uint64_t perf_counter_freq = SDL_GetPeformanceFrequency(); // units per second
+  uint64_t prev_counter = SDL_GetPerformanceCounter(); // units
 
+    SDL_Event event = {0}; 	  
+	while (SDL_PollEvent(&event)) {
+      global_input.cur_keyboard_state = SDL_GetKeyboardState(NULL); 
+	  global_input.cur_mouse_state = SDL_GetMouseState(&global_input.cur_mouse_x, &global_input.cur_mouse_y);
+
+      switch (event.type) {
+	  case SDL_QUIT:
+	    global_want_to_run = false;
+		break;
+	  case SDL_CONTROLLERDEVICEADDED:
+	    if (global_input.num_controllers_connected != MAX_NUM_CONTROLLERS) {
+		  _InputController* controller = input.controllers[input.num_controllers_connected];
+
+          controller->controller = SDL_GameControllerOpen(event.cdevice.which);
+		  if (controller->controller == NULL) {
+		    SDL_LogWarn(
+			  SDL_LOG_CATEGORY_SYSTEM, 
+			  "Unable to open controller %s", 
+			  SDL_GetError()
+			);
+		    break;	  
+		  }
+
+          SDL_Joystick* controller_joystick = SDL_GameControllerGetJoystick(controller->controller);
+		  controller->haptic_handle = SDL_HapticOpenFromJoystick(controller_joystick);
+		  if (controller->haptic_handle != NULL) {
+		    if (SDL_HapticRumbleInit(controller->haptic_handle)) {
+			  SDL_LogWarn(
+			    SDL_LOG_CATEGORY_SYSTEM, 
+				"Unable to initialize controller haptic handle %s", 
+				SDL_GetError()
+			  );
+			}
+		  }
+
+		}
+		break;
+	  case SDL_CONTROLLERDEVICEREMOVED:
+		for (size_t controller_indexes_pos = 0; controller_indexes_pos < 4; ++controller_indexes_pos) {
+		  if (controller_indexes[controller_indexes_pos] == event.cdevice.which) {
+		    SDL_GameControllerClose(controllers[controller_indexes_pos]);
+		    --num_controllers_connected;
+		  }
+		}
+		break;
+	  case SDL_WINDOWEVENT:
+	    switch (event.window.event) {
+	    case SDL_WINDOWEVENT_CLOSE:
+		  want_to_run = false;
+		  break;
+		}  
+	    break;
+	  }
+
+     prev_keyboard_state = cur_keyboard_state;
+	 prev_mouse_state = cur_mouse_state; 
+	 prev_mouse_x = cur_mouse_x;
+	 prev_mouse_y = cur_mouse_y;
+	}
+
+    if (SDL_SetRenderDrawColor(renderer, 255, 0, 0, SDL_ALPHA_OPAQUE) < 0) {
+	  SDL_LogWarn(
+	    SDL_LOG_CATEGORY_SYSTEM, 
+		"Unable to set SDL renderer draw color %s", 
+		SDL_GetError()
+	  );
+	}
+    if (SDL_RenderClear(renderer) < 0) {
+	  SDL_LogWarn(
+	    SDL_LOG_CATEGORY_SYSTEM, 
+		"Unable to clear SDL renderer %s", 
+		SDL_GetError()
+	  );
+	}
+    SDL_RenderPresent(renderer);
+
+    // play sound here 
+
+    double ms_per_frame = 1000.0f * (counter / perf_count_frequency);
+	int fps = perf_count_frequency / counter;
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "%.02f ms/f, %.02f/s");
 #if defined(__EMSCRIPTEN__)
   if (!global_want_to_run) {
     emscripten_cancel_main_loop();	  
@@ -127,73 +212,6 @@ __cleanup:
     goto __cleanup;
   }
 
-  uint64_t perf_counter_freq = SDL_GetPeformanceFrequency(); // units per second
-  uint64_t prev_counter = SDL_GetPerformanceCounter(); // units
-
-  while (want_to_run) {
-    SDL_Event event = {0}; 	  
-	while (SDL_PollEvent(&event)) {
-      cur_keyboard_state = SDL_GetKeyboardState(NULL); 
-	  cur_mouse_state = SDL_GetMouseState(&cur_mouse_x, &cur_mouse_y);
-
-      switch (event.type) {
-	  case SDL_QUIT:
-	    want_to_run = false;
-		break;
-	  case SDL_CONTROLLERDEVICEADDED:
-	    if (input.num_controllers_connected != MAX_NUM_CONTROLLERS) {
-		  _InputController* controller = input.controllers[input.num_controllers_connected];
-
-		  controller->joystick_handle = SDL_JoystickOpen(event.cdevice.which);
-		  controller->haptic_handle = SDL_HapticOpenFromJoystick(controller->joystick_handle);
-		  SDL_HapticRumbleInit(controller->haptic_handle);
-          SDL_GameControllerOpen(event.cdevice.which); 
-		}
-		break;
-	  case SDL_CONTROLLERDEVICEREMOVED:
-		for (size_t controller_indexes_pos = 0; controller_indexes_pos < 4; ++controller_indexes_pos) {
-		  if (controller_indexes[controller_indexes_pos] == event.cdevice.which) {
-		    SDL_GameControllerClose(controllers[controller_indexes_pos]);
-		    --num_controllers_connected;
-		  }
-		}
-		break;
-	  case SDL_WINDOWEVENT:
-	    switch (event.window.event) {
-	    case SDL_WINDOWEVENT_CLOSE:
-		  want_to_run = false;
-		  break;
-		}  
-	    break;
-	  }
-
-     prev_keyboard_state = cur_keyboard_state;
-	 prev_mouse_state = cur_mouse_state; 
-	 prev_mouse_x = cur_mouse_x;
-	 prev_mouse_y = cur_mouse_y;
-	}
-
-    if (SDL_SetRenderDrawColor(renderer, 255, 0, 0, SDL_ALPHA_OPAQUE) < 0) {
-	  SDL_LogWarn(
-	    SDL_LOG_CATEGORY_SYSTEM, 
-		"Unable to set SDL renderer draw color %s", 
-		SDL_GetError()
-	  );
-	}
-    if (SDL_RenderClear(renderer) < 0) {
-	  SDL_LogWarn(
-	    SDL_LOG_CATEGORY_SYSTEM, 
-		"Unable to clear SDL renderer %s", 
-		SDL_GetError()
-	  );
-	}
-    SDL_RenderPresent(renderer);
-
-    // play sound here 
-
-    double ms_per_frame = 1000.0f * (counter / perf_count_frequency);
-	int fps = perf_count_frequency / counter;
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "%.02f ms/f, %.02f/s");
   } 
 
 __cleanup:
