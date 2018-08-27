@@ -39,3 +39,32 @@ find_package(SDL2_net REQUIRED)
 target_include_directories(hhc PRIVATE ${SDL2_net_INCLUDE_DIRS})
 target_link_libraries(hhc PRIVATE ${SDL2_net_LIBRARIES})
 
+
+
+
+void* game_code_dll = SDL_LoadObject("game.so"); // we don't want any local_persists in this library
+
+// windows exported functions .h files --> __declspec(dllimport) void func_name();
+
+void load_game_code_dll(GameCode* game_code)
+{
+  game_code->render_fnc = (void (*)(void))SDL_LoadFunction(game_code_dll, "render");
+}
+
+void unload_game_code();
+
+while (is_running) {
+  if (load_counter++ > 120) {
+    unload_game_code();
+    load_game_code();
+  }
+}
+
+
+
+
+
+
+
+
+
