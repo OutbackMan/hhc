@@ -4,6 +4,8 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/Modules)
 
 project(HHC VERSION 0.0.1 LANGUAGES C)
 
+# create game code library
+
 set(_hhc_sources
   src/hhc.c
 )
