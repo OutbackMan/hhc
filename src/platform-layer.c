@@ -195,6 +195,7 @@ STATUS platform_layer__initialize_renderer(PlatformLayer__Window* window, Platfo
 	  
   }
 
+// logical_size() perhaps
   renderer->renderer = SDL_CreateRenderer
 }
 
@@ -204,25 +205,156 @@ void platform_layer_update(PlatformLayer* platform_layer, SDL_Event* event)
 
   switch (event->type) {
   case SDL_WINDOWEVENT:
-    switch (event->window.type) {
+    switch (event->window.event) {
+    case SDL_WINDOWEVENT_SHOWN:
+	  platform_layer->window.is_shown = true;
+	  break;
+	case SDL_WINDOWEVENT_HIDDEN:
+	  platform_layer->window.is_shown = false;
+	  break;
+	case SDL_WINDOWEVENT_MINIMIZED:
+	  platform_layer->window.is_minimized = true;
+	  break;
+	case SDL_WINDOWEVENT_RESTORED:
+	  platform_layer->window.is_minimized = false;
+	  break;
+	case SDL_WINDOWEVENT_MOVED:
+	  platform_layer->window.x = event->window.data1;
+	  platform_layer->window.y = event->window.data1;
+	  break;
+	case SDL_WINDOWEVENT_SIZE_CHANGED:
+	case SDL_WINDOWEVENT_RESIZED:
+	  platform_layer->window.width = event->window.data1;
+	  platform_layer->window.height = event->window.data2;
+	  break;
+	case SDL_WINDOWEVENT_FOCUS_GAINED:
+	  platform_layer->window.has_focus = true;
+      break;
+	case SDL_WINDOWEVENT_FOCUS_LOST:
+	  platform_layer->window.has_focus = false;
+      break;
     case SDL_WINDOWEVENT_CLOSED:
-	  platform_layer->window.closed = true;
+	  platform_layer->window.is_closed = true;
 	  break;
     NO_DEFAULT_CASE
 	}
-  case SDL_KEYDOWN:
+  case SDL_KEYDOWN: 
+    platform_layer__digital_button_update(
+	  platform_layer->keys[event->key.keysym.scancode],
+	  true
+	);
     break;
   case SDL_KEYUP:
+    platform_layer__digital_button_update(
+	  platform_layer->keys[event->key.keysym.scancode],
+	  false
+	);
     break;
-		
-  case SDL_TEXTEDITINGEVENT
-  case SDL_FINGERMOTION:
-  case SDL_FINGERDOWN:
-  case SDL_FINGERUP:
-
-  case SDL_MULTIGESTURE: {
-	  
+  case SDL_TEXTEDITINGEVENT:
+  // text input
+  case SDL_MOUSEMOTION:
+    platform_layer->mouse.x = event->motion.x;
+    platform_layer->mouse.y = event->motion.y;
+    platform_layer->mouse.delta_x = event->motion.xrel;
+    platform_layer->mouse.delta_y = event->motion.yrel;
+    break;
+  case SDL_MOUSEBUTTONDOWN:
+    if (event->button.button == SDL_BUTTON_LEFT) {
+      platform_layer__digital_button_update(
+	    platform_layer->mouse.left_btn,
+	    true
+	  );
+	}
+    if (event->button.button == SDL_BUTTON_MIDDLE) {
+      platform_layer__digital_button_update(
+	    platform_layer->mouse.middle_btn,
+	    true
+	  );
+	}
+    if (event->button.button == SDL_BUTTON_RIGHT) {
+      platform_layer__digital_button_update(
+	    platform_layer->mouse.right_btn,
+	    true
+	  );
+	}
+    break;
+  case SDL_MOUSEBUTTONUP:
+    if (event->button.button == SDL_BUTTON_LEFT) {
+      platform_layer__digital_button_update(
+	    platform_layer->mouse.left_btn,
+	    false
+	  );
+	}
+    if (event->button.button == SDL_BUTTON_MIDDLE) {
+      platform_layer__digital_button_update(
+	    platform_layer->mouse.middle_btn,
+	    false
+	  );
+	}
+    if (event->button.button == SDL_BUTTON_RIGHT) {
+      platform_layer__digital_button_update(
+	    platform_layer->mouse.right_btn,
+	    false
+	  );
+	}
+    break;
+  case SDL_MOUSEWHEEL:
+   // have to set back 
+   platform_layer->mouse.scrolled_vertically = event->wheel.y;
+   break;
+  case SDL_CONTROLLERDEVICEADDED:
+  case SDL_CONTROLLERDEVICEREMOVED:
+  case SDL_FINGERDOWN: {
+    bool is_existing_touch = false;	
+    for (int f_id = 0; f_id < platform_layer->num_active_touches; ++f_id) {
+	  if (platform_layer->touches[f_id].id == event->tfinger.fingerId) {
+        platform_layer__digital_button_update(
+	      platform_layer->touches[f_id].btn
+	      true
+	    );
+        platform_layer->touches[f_id].x = event->tfinger.x;
+        platform_layer->touches[f_id].y = event->tfinger.y;
+		is_existing_touch = true;
+		break;
+	  }
+	}
+	if (!is_existing_touch && 
+	  platform_layer->num_active_touches < PLATFORM_LAYER_MAX_ACTIVE_TOUCHES) {
+      platform_layer__digital_button_update(
+	    platform_layer->touches[platform_layer->num_active_touches].btn
+	    true
+	  );
+      platform_layer->touches[platform_layer->num_active_touches].x = \
+	    event->tfinger.x;
+      platform_layer->touches[platform_layer->num_active_touches].y = \
+	    event->tfinger.y;
+      platform_layer->touches[platform_layer->num_active_touches++].id = \
+	    event->tfinger.fingerId;
+	}
   } break;
+  case SDL_FINGERUP:
+    for (int f_id = 0; f_id < platform_layer->num_active_touches; ++f_id) {
+	  if (platform_layer->touches[f_id].id == event->tfinger.fingerId) {
+        platform_layer__digital_button_update(
+	      platform_layer->touches[f_id].btn
+	      false
+	    );
+        platform_layer->touches[f_id].x = -1;
+        platform_layer->touches[f_id].y = -1;
+        platform_layer->touches[f_id].id = -1;
+	    --platform_layer->num_active_touches;	
+		break;
+	  }
+	}
+	break;
+}
+
+void platform_layer__digital_button_update()
+{
+  bool was_down = btn->is_down;
+  btn->is_down = is_down;
+  btn->is_pressed = !btn->was_down && is_down;
+  btn->is_released = btn->was_down && !is_down;
 }
 
 /*

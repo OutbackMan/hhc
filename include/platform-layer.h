@@ -11,7 +11,7 @@ manifest.json {
 
 #include <stdbool.h>
 
-#define PLATFORM_LAYER_MAX_NUM_KEYS 256
+#define PLATFORM_LAYER_MAX_NUM_KEYS 285 // refer to SDL_Scancode lookup table
 #define PLATFORM_LAYER_MAX_NUM_CONTROLLERS 4
 #define PLATFORM_LAYER_MAX_NUM_TOUCHES 5
 #define PLATFORM_LAYER_INPUT_TEXT_BUFFER_SIZE 1024
@@ -33,10 +33,13 @@ typedef struct PlatformLayer {
   PlatformLayer__DigitalButton keys[PLATFORM_LAYER_MAX_NUM_KEYS]; 
   PlatformLayer__Controller controllers[PLATFORM_LAYER_MAX_NUM_CONTROLLERS];
   PlatformLayer__Mouse mouse;
-  PlatformLayer__DigitalButton touches[PLATFORM_LAYER_MAX_NUM_TOUCHES];
+  PlatformLayer__Touch touches[PLATFORM_LAYER_MAX_NUM_TOUCHES];
 
   PlatformLayer__Time time; 
 
+  /*
+    SDL_Start/StopTextInput()
+  */
   char input_text[PLATFORM_LAYER_INPUT_TEXT_BUFFER_SIZE];
   size_t input_text_length;
 } 
@@ -47,6 +50,7 @@ typedef struct PlatformLayer__Window {
   int y;
   int width;
   int height;
+  bool is_closed;
   // add more when event handling
   u32 flags;
 };
@@ -63,12 +67,16 @@ typedef struct PlatformLayer__DigitalButton {
   bool is_released;
 };
 
+typedef struct PlatformLayer__Touch {
+  PlatformLayer__DigitalButton btn;
+  int x;
+  int y;
+}
+
 typedef struct PlatformLayer__AnalogButton {
+  PlatformLayer__DigitalButton btn;
   float threshold;
   float value;
-  bool is_down;
-  bool is_pressed;
-  bool is_released;
 };
 
 typedef struct PlatformLayer__Stick {
@@ -98,8 +106,8 @@ typedef struct PlatformLayer__Controller {
 
 typedef struct PlatformLayer__Mouse {
   PlatformLayer__DigitalButton left_btn; 
-  int wheel;
-  int wheel_delta;
+  PlatformLayer__DigitalButton middle_btn; 
+  int scrolled_vertically;
   PlatformLayer__DigitalButton right_btn; 
   int x;
   int y;
