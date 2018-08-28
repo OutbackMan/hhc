@@ -62,6 +62,7 @@
 #define UNLIKELY(val) __builtin_expect(!!(val), 0)
 #define DESIGNATED __attribute__((designated_init))
 #define FLATTEN __attribute__((flatten))
+#define DYNAMIC_EXTERN
 #else
 #define inline __inline
 #define ALIGN(val) __declspec(align(val))
@@ -78,6 +79,7 @@
 #define UNLIKELY(val)
 #define DESIGNATED
 #define FLATTEN
+#define DYNAMIC_EXTERN __declspec(dllexport) 
 #endif
 
 typedef uint8_t u8;
