@@ -66,8 +66,36 @@ while (is_running) {
 build command (cmake . and cmake --build) opens terminal buffer in new vertical split
 command to run under debugger
 
+=================
+typedef struct State {
+  FILE* recording_handle;
+  int input_recording_index = 0;
+  FILE* playback_handle;
+  int input_playing_index = 0;
+};
+
+typedef struct recorded_input {
+  int input_count;
+  PlatformLayerInput input;
+}
+
+if (input->keys[SDL_SCANCODE_L].is_pressed) {
+  if (input_recording_index == 0) {
+    input_recording_index = 1;
+  } else {
+    input_recording_index = 0;
+  }
+  
+}
 
 
+if (state->input_recording_index) {
+  record_input(state, input);
+}
+if (state->input_playing_index) {
+  playback_input(state, input);
+}
+game_update_and_render(input, output (window and renderer))
 
 
 
