@@ -62,6 +62,12 @@ while (is_running) {
 
 
 
+=================
+build command (cmake . and cmake --build) opens terminal buffer in new vertical split
+command to run under debugger
+
+
+
 
 
 
