@@ -28,42 +28,6 @@ INTERNAL loop(void)
 	  case SDL_QUIT:
 	    global_want_to_run = false;
 		break;
-	  case SDL_CONTROLLERDEVICEADDED:
-	    if (global_input.num_controllers_connected != MAX_NUM_CONTROLLERS) {
-		  _InputController* controller = input.controllers[input.num_controllers_connected];
-
-          controller->controller = SDL_GameControllerOpen(event.cdevice.which);
-		  if (controller->controller == NULL) {
-		    SDL_LogWarn(
-			  SDL_LOG_CATEGORY_SYSTEM, 
-			  "Unable to open controller %s", 
-			  SDL_GetError()
-			);
-		    break;	  
-		  }
-
-          SDL_Joystick* controller_joystick = SDL_GameControllerGetJoystick(controller->controller);
-		  controller->haptic_handle = SDL_HapticOpenFromJoystick(controller_joystick);
-		  if (controller->haptic_handle != NULL) {
-		    if (SDL_HapticRumbleInit(controller->haptic_handle)) {
-			  SDL_LogWarn(
-			    SDL_LOG_CATEGORY_SYSTEM, 
-				"Unable to initialize controller haptic handle %s", 
-				SDL_GetError()
-			  );
-			}
-		  }
-
-		}
-		break;
-	  case SDL_CONTROLLERDEVICEREMOVED:
-		for (size_t controller_indexes_pos = 0; controller_indexes_pos < 4; ++controller_indexes_pos) {
-		  if (controller_indexes[controller_indexes_pos] == event.cdevice.which) {
-		    SDL_GameControllerClose(controllers[controller_indexes_pos]);
-		    --num_controllers_connected;
-		  }
-		}
-		break;
 	  case SDL_WINDOWEVENT:
 	    switch (event.window.event) {
 	    case SDL_WINDOWEVENT_CLOSE:

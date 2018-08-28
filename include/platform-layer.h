@@ -32,16 +32,16 @@ typedef struct PlatformLayer {
 
   PlatformLayer__DigitalButton keys[PLATFORM_LAYER_MAX_NUM_KEYS]; 
   PlatformLayer__Controller controllers[PLATFORM_LAYER_MAX_NUM_CONTROLLERS];
+  size_t num_active_controllers;
   PlatformLayer__Mouse mouse;
   PlatformLayer__Touch touches[PLATFORM_LAYER_MAX_NUM_TOUCHES];
+  size_t num_active_touches;
 
   PlatformLayer__Time time; 
-
   /*
     SDL_Start/StopTextInput()
+	hold out on text input
   */
-  char input_text[PLATFORM_LAYER_INPUT_TEXT_BUFFER_SIZE];
-  size_t input_text_length;
 } 
 
 typedef struct PlatformLayer__Window {
@@ -86,6 +86,9 @@ typedef struct PlatformLayer__Stick {
 };
 
 typedef struct PlatformLayer__Controller {
+  SDL_Joystick* joystick;
+  SDL_Haptic* haptic;
+  SDL_Controller* controller ;
   PlatformLayer__DigitalButton left_btn; 
   PlatformLayer__DigitalButton up_btn; 
   PlatformLayer__DigitalButton right_btn; 

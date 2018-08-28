@@ -3,6 +3,8 @@
 
 #include <SDL2/SDL.h>
 
+#include <stdbool.h>
+
 #if defined(__EMSCRIPTEN__)
 #include <emscripten/emscripten.h>
 #endif
@@ -250,8 +252,6 @@ void platform_layer_update(PlatformLayer* platform_layer, SDL_Event* event)
 	  false
 	);
     break;
-  case SDL_TEXTEDITINGEVENT:
-  // text input
   case SDL_MOUSEMOTION:
     platform_layer->mouse.x = event->motion.x;
     platform_layer->mouse.y = event->motion.y;
@@ -299,14 +299,50 @@ void platform_layer_update(PlatformLayer* platform_layer, SDL_Event* event)
 	}
     break;
   case SDL_MOUSEWHEEL:
-   // have to set back 
    platform_layer->mouse.scrolled_vertically = event->wheel.y;
    break;
   case SDL_CONTROLLERDEVICEADDED:
-  case SDL_CONTROLLERDEVICEREMOVED:
+    if (platform_layer->num_active_controllers != 
+	  PLATFORM_LAYER_MAX_NUM_ACTIVE_CONTROLLERS) {
+      platform_layer->controllers[platform_layer.num_active_controllers] = \
+	    SDL_GameControllerOpen(event->cdevice.which);
+		  if (platform_layer->controllers[platform_layer.num_active_controllers] == NULL) {
+		    SDL_LogWarn(
+			  SDL_LOG_CATEGORY_SYSTEM, 
+			  "Unable to open controller %s", 
+			  SDL_GetError()
+			);
+		    break;	  
+		  }
+
+          SDL_Joystick* controller_joystick = SDL_GameControllerGetJoystick(controller->controller);
+		  controller->haptic_handle = SDL_HapticOpenFromJoystick(controller_joystick);
+		  if (controller->haptic_handle != NULL) {
+		    if (SDL_HapticRumbleInit(controller->haptic_handle)) {
+			  SDL_LogWarn(
+			    SDL_LOG_CATEGORY_SYSTEM, 
+				"Unable to initialize controller haptic handle %s", 
+				SDL_GetError()
+			  );
+			}
+		  }
+
+		}
+		break;
+	  case SDL_CONTROLLERDEVICEREMOVED:
+		for (size_t controller_indexes_pos = 0; controller_indexes_pos < 4; ++controller_indexes_pos) {
+		  if (controller_indexes[controller_indexes_pos] == event.cdevice.which) {
+		    SDL_GameControllerClose(controllers[controller_indexes_pos]);
+		    --num_controllers_connected;
+		  }
+		}
+		break;
+
+  case SDL_CONTROLLERBUTTONDOWN:
+  case SDL_CONTROLLERBUTTONUP:
   case SDL_FINGERDOWN: {
     bool is_existing_touch = false;	
-    for (int f_id = 0; f_id < platform_layer->num_active_touches; ++f_id) {
+    for (size_t f_id = 0; f_id < platform_layer->num_active_touches; ++f_id) {
 	  if (platform_layer->touches[f_id].id == event->tfinger.fingerId) {
         platform_layer__digital_button_update(
 	      platform_layer->touches[f_id].btn
@@ -349,6 +385,25 @@ void platform_layer_update(PlatformLayer* platform_layer, SDL_Event* event)
 	break;
 }
 
+void platform_layer__handle_controller_btn() {
+  if (event->cbutton.button == SDL_CONTROLLER_BUTTON_A) {
+    platform_layer__digital_button_update(
+	  platform_layer->controllers[i].a_btn
+	  is_down
+    );
+  }
+}
+
+void platform_layer__handle_controller_btn_down() {
+  platform_layer__handle_controller_btn(true);
+}
+void platform_layer__handle_controller_btn_up() {
+  platform_layer__handle_controller_btn(true);
+}
+
+void platform_layer__handle_finger_down() {}
+void platform_layer__handle_finger_up() {}
+
 void platform_layer__digital_button_update()
 {
   bool was_down = btn->is_down;
@@ -357,13 +412,18 @@ void platform_layer__digital_button_update()
   btn->is_released = btn->was_down && !is_down;
 }
 
+void platform_layer_restore(PlatformLayer* platform_layer)
+{
+  platform_layer->mouse.scrolled_vertically = 0;
+}
+
 /*
-  platform_layer_pull(&platform_layer);
+  platform_layer_intialize(&platform_layer);
     
 	while (event) {
 
 	platform_player_update(&platform_layer, event);
 	}
-*/
 
-void platform_layer_window_restore_info();
+	platform_layer_restore();
+*/
