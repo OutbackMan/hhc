@@ -74,29 +74,23 @@ typedef struct PlatformLayer__Touch {
 }
 
 typedef struct PlatformLayer__AnalogButton {
-  PlatformLayer__DigitalButton btn;
-  float threshold;
-  float value;
-};
-
-typedef struct PlatformLayer__Stick {
-  float threshold;
-  float x;
-  float y;
+  int x_value;
+  int y_value;
 };
 
 typedef struct PlatformLayer__Controller {
-  SDL_Joystick* joystick;
-  SDL_Haptic* haptic;
   SDL_Controller* controller ;
-  PlatformLayer__DigitalButton left_btn; 
-  PlatformLayer__DigitalButton up_btn; 
-  PlatformLayer__DigitalButton right_btn; 
-  PlatformLayer__DigitalButton down_btn; 
-  PlatformLayer__Stick left_thumb_stick;
+  SDL_Haptic* haptic;
+  PlatformLayer__DigitalButton dpad_left; 
+  PlatformLayer__DigitalButton dpad_up; 
+  PlatformLayer__DigitalButton dpad_right; 
+  PlatformLayer__DigitalButton dpad_down; 
+  PlatformLayer__DigitalButton left_stick_btn;
+  PlatformLayer__AnalogButton left_stick;
   PlatformLayer__DigitalButton back_btn; 
   PlatformLayer__DigitalButton start_btn; 
-  PlatformLayer__Stick right_thumb_stick;
+  PlatformLayer__DigitalButton right_stick_btn;
+  PlatformLayer__AnalogButton right_stick;
   PlatformLayer__DigitalButton a_btn; 
   PlatformLayer__DigitalButton b_btn; 
   PlatformLayer__DigitalButton x_btn; 

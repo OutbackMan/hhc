@@ -129,7 +129,9 @@ STATUS platform_layer_initialize(PlatformLayer* platform_layer)
   }
 
   
-
+  // we could prevent multithreading if required
+  // vertical_scroll, 
+  SDL_Timer my_timer = SDL_AddTimer(10, list, platform_layer);
 }
 
 void platform_layer_cleanup(PlatformLayer* platform_layer)
@@ -339,8 +341,14 @@ void platform_layer_update(PlatformLayer* platform_layer, SDL_Event* event)
 		break;
 
   case SDL_CONTROLLERBUTTONDOWN:
+    platform_layer__handle_controller_btn_down();
   case SDL_CONTROLLERBUTTONUP:
-  case SDL_FINGERDOWN: {
+    platform_layer__handle_controller_btn_up();
+  case SDL_CONTROLLERAXISMOTION:
+    platform_layer__handle_controller_axis_motion();		
+  case SDL_FINGERDOWN:
+    platform_layer__handle_finger_down();
+
     bool is_existing_touch = false;	
     for (size_t f_id = 0; f_id < platform_layer->num_active_touches; ++f_id) {
 	  if (platform_layer->touches[f_id].id == event->tfinger.fingerId) {
@@ -385,10 +393,87 @@ void platform_layer_update(PlatformLayer* platform_layer, SDL_Event* event)
 	break;
 }
 
-void platform_layer__handle_controller_btn() {
-  if (event->cbutton.button == SDL_CONTROLLER_BUTTON_A) {
+void platform_layer__handle_controller_btn(
+  u8 button_id,
+  PlatformLayer__Controller* controller, 
+  bool is_down
+)
+{
+  if (button_id == SDL_CONTROLLER_BUTTON_DPAD_LEFT) {
     platform_layer__digital_button_update(
-	  platform_layer->controllers[i].a_btn
+	  controller->dpad_left
+	  is_down
+    );
+  }
+  if (button_id == SDL_CONTROLLER_BUTTON_DPAD_UP) {
+    platform_layer__digital_button_update(
+	  controller->dpad_up
+	  is_down
+    );
+  }
+  if (button_id == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) {
+    platform_layer__digital_button_update(
+	  controller->dpad_right
+	  is_down
+    );
+  }
+  if (button_id == SDL_CONTROLLER_BUTTON_DPAD_DOWN) {
+    platform_layer__digital_button_update(
+	  controller->dpad_down
+	  is_down
+    );
+  }
+  if (button_id == SDL_CONTROLLER_BUTTON_LEFTSTICK) {
+    platform_layer__digital_button_update(
+	  controller->left_stick_btn
+	  is_down
+    );
+  }
+  if (button_id == SDL_CONTROLLER_BUTTON_BACK) {
+    platform_layer__digital_button_update(
+	  controller->back_btn
+	  is_down
+    );
+  }
+  if (button_id == SDL_CONTROLLER_BUTTON_START) {
+    platform_layer__digital_button_update(
+	  controller->start_btn
+	  is_down
+    );
+  }
+  if (button_id == SDL_CONTROLLER_BUTTON_A) {
+    platform_layer__digital_button_update(
+	  controller->a_btn
+	  is_down
+    );
+  }
+  if (button_id == SDL_CONTROLLER_BUTTON_B) {
+    platform_layer__digital_button_update(
+	  controller->b_btn
+	  is_down
+    );
+  }
+  if (button_id == SDL_CONTROLLER_BUTTON_X) {
+    platform_layer__digital_button_update(
+	  controller->x_btn
+	  is_down
+    );
+  }
+  if (button_id == SDL_CONTROLLER_BUTTON_Y) {
+    platform_layer__digital_button_update(
+	  controller->y_btn
+	  is_down
+    );
+  }
+  if (button_id == SDL_CONTROLLER_BUTTON_LEFT_SHOULDER) {
+    platform_layer__digital_button_update(
+	  controller->left_shoulder_btn
+	  is_down
+    );
+  }
+  if (button_id == SDL_CONTROLLER_BUTTON_RIGHT_SHOULDER) {
+    platform_layer__digital_button_update(
+	  controller->right_shoulder_btn
 	  is_down
     );
   }
@@ -398,7 +483,29 @@ void platform_layer__handle_controller_btn_down() {
   platform_layer__handle_controller_btn(true);
 }
 void platform_layer__handle_controller_btn_up() {
-  platform_layer__handle_controller_btn(true);
+  platform_layer__handle_controller_btn(false);
+}
+
+void platform_layer__handle_controller_axis_motion()
+{
+  if (event->caxis.axis == SDL_CONTROLLER_LEFTX) {
+    controller->left_stick.x_value = event->caxis.value;
+  }
+  if (event->caxis.axis == SDL_CONTROLLER_LEFTY) {
+    controller->left_stick.y_value = event->caxis.value;
+  }
+  if (event->caxis.axis == SDL_CONTROLLER_RIGHTX) {
+    controller->right_stick.x_value = event->caxis.value;
+  }
+  if (event->caxis.axis == SDL_CONTROLLER_RIGHTY) {
+    controller->right_stick.y_value = event->caxis.value;
+  }
+  if (event->caxis.axis == SDL_CONTROLLER_TRIGGERLEFT) {
+    controller->left_trigger = event->caxis.value;
+  }
+  if (event->caxis.axis == SDL_CONTROLLER_TRIGGERRIGHT) {
+    controller->right_trigger = event->caxis.value;
+  }
 }
 
 void platform_layer__handle_finger_down() {}
@@ -412,8 +519,11 @@ void platform_layer__digital_button_update()
   btn->is_released = btn->was_down && !is_down;
 }
 
-void platform_layer_restore(PlatformLayer* platform_layer)
+
+u32 platform_layer_restore(u32 interval, void* param)
 {
+  PlatformLayer* platform_layer = (PlatformLayer *)param;	
+
   platform_layer->mouse.scrolled_vertically = 0;
 }
 
