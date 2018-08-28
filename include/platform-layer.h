@@ -37,10 +37,8 @@ typedef struct PlatformLayer {
   PlatformLayer__Touch touches[PLATFORM_LAYER_MAX_NUM_TOUCHES];
   size_t num_active_touches;
 
-  PlatformLayer__Time time; 
   /*
-    SDL_Start/StopTextInput()
-	hold out on text input
+    need to handle text input, mouse wheel (timer)
   */
 } 
 
@@ -50,8 +48,10 @@ typedef struct PlatformLayer__Window {
   int y;
   int width;
   int height;
+  bool is_shown;
+  bool is_minimized;
+  bool has_focus;
   bool is_closed;
-  // add more when event handling
   u32 flags;
 };
 
@@ -79,6 +79,7 @@ typedef struct PlatformLayer__AnalogButton {
 };
 
 typedef struct PlatformLayer__Controller {
+  int32 joystick_index;
   SDL_Controller* controller ;
   SDL_Haptic* haptic;
   PlatformLayer__DigitalButton dpad_left; 
@@ -104,18 +105,12 @@ typedef struct PlatformLayer__Controller {
 typedef struct PlatformLayer__Mouse {
   PlatformLayer__DigitalButton left_btn; 
   PlatformLayer__DigitalButton middle_btn; 
-  int scrolled_vertically;
   PlatformLayer__DigitalButton right_btn; 
   int x;
   int y;
   int delta_x;
   int delta_y;
 };
-
-typedef struct PlatformLayer__Time {
-  u64 ticks;
-};
-
 
 // read_entire_file, write_to_entire_file
 // state

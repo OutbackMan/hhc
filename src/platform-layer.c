@@ -32,6 +32,8 @@ STATUS platform_layer_initialize(PlatformLayer* platform_layer)
   platform_layer->renderer.is_initialized = false;
   platform_layer->window.is_initialized = false;
 
+  platform_layer_initialize_input(platform_layer);
+
   if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
     SDL_LogCritical(
 	  SDL_LOG_CATEGORY_SYSTEM, 
@@ -118,28 +120,123 @@ STATUS platform_layer_initialize(PlatformLayer* platform_layer)
   platform_layer->are_on_mobile_device = false;
 #endif
 
-  if (platform_layer__initialize_window(platform_layer) != SUCCESS) {
+  if (platform_layer__initialize_window(platform_layer->window) != SUCCESS) {
     platform_layer_cleanup(platform_layer);	  
 	return FAILURE;
   }
 
-  if (platform_layer__initialize_renderer(platform_layer) != SUCCESS) {
+  if (platform_layer__initialize_renderer(platform_layer->renderer) != SUCCESS) {
     platform_layer_cleanup(platform_layer);	  
 	return FAILURE;
   }
 
+  return SUCCESS;
+}
+
+INTERNAL void platform_layer__create_default_digital_btn(
+  PlatformLayer__DigitalButton* btn
+)
+{
+  btn->is_down = false;
+  btn->is_pressed = false;
+  btn->is_released = false;
+}
+
+INTERNAL void platform_layer__initialize_controller(
+  PlatformLayer__Controller* controller
+)
+{
+  controller->joystick_index = -1;
+  controller->controller = NULL;
+  controller->haptic = NULL;
+  // replace with x-macros --> just use {0} ??
+  controller->dpad_left = PLATFORM_LAYER_DEFAULT_DIGITAL_BTN;
+  platform_layer__create_default_digital_btn(&controller->dpad_up); 
+  platform_layer__create_default_digital_btn(&controller->dpad_right); 
+  platform_layer__create_default_digital_btn(&controller->dpad_down); 
+  platform_layer__create_default_digital_btn(&controller->left_stick_btn);
+
+  platform_layer__create_default_digital_btn(&controller->left_stick;
+
+  platform_layer__create_default_digital_btn(&controller->back_btn); 
+  platform_layer__create_default_digital_btn(&controller->start_btn); 
+  platform_layer__create_default_digital_btn(&controller->right_stick_btn);
+
+  platform_layer__create_default_digital_btn(&controller->right_stick;
+
+  platform_layer__create_default_digital_btn(&controller->a_btn); 
+  platform_layer__create_default_digital_btn(&controller->b_btn); 
+  platform_layer__create_default_digital_btn(&controller->x_btn); 
+  platform_layer__create_default_digital_btn(&controller->y_btn); 
+  platform_layer__create_default_digital_btn(&controller->left_shoulder_btn); 
+
+  platform_layer__create_default_digital_btn(&controller->left_trigger; 
+
+  platform_layer__create_default_digital_btn(&controller->right_shoulder_btn); 
+
+  platform_layer__create_default_digital_btn(&controller->right_trigger; 
+}
+
+INTERNAL void platform_layer__initialize_input(PlatformLayer* platform_layer)
+{
+  for (size_t k_i = 0; k_i < PLATFORM_LAYER_MAX_NUM_KEYS; ++k_i) {
+    platform_layer__create_default_digital_btn(&platform_layer->keys[k_i]);
+  }	
   
-  // we could prevent multithreading if required
-  // vertical_scroll, 
-  SDL_Timer my_timer = SDL_AddTimer(10, list, platform_layer);
+  platform_layer->num_active_controllers = 0;
+  for (size_t c_i = 0; c_i < PLATFORM_LAYER_MAX_NUM_CONTROLLERS; ++c_i) {
+    platform_layer__create_default_controller(
+	  &platform_layer->controllers[c_i]
+	);
+  }
+
+  platform_layer->mouse = {
+    .left_btn = {
+	  .is_down = false,
+	  .is_pressed = false,
+	  .is_released = false
+	},
+	.middle_btn = {
+	  .is_down = false,
+	  .is_pressed = false,
+	  .is_released = false
+	},
+	.right_btn = {
+	  .is_down = false,
+	  .is_pressed = false,
+	  .is_released = false
+	},
+	.x = 0,
+	.y = 0,
+	.delta_x = 0,
+	.delta_y = 0
+  };
+
+  platform_layer->num_active_touches = 0;
+  for (size_t t_i = 0; t_i < PLATFORM_LAYER_MAX_NUM_TOUCHES; ++t_i) {
+    platform_layer__create_default_digital_btn(&platform_layer->touches[t_i].btn);
+	platform_layer->touches.x = 0;
+	platform_layer->touches.y = 0;
+  }
 }
 
 void platform_layer_cleanup(PlatformLayer* platform_layer)
 {
   SDL_assert(platform_layer != NULL);
 
-  if (platform_layer->renderer.is_initialized) SDL_DestroyRenderer(platform_layer->renderer.renderer);
-  if (platform_layer->window.is_initialized) SDL_DestroyWindow(platform_layer->window.window);
+  for (size_t c_i = 0; c_i < platform_layer->num_active_controllers; ++c_i) {
+    if (platform_layer->controllers[c_i].haptic != NULL) {
+	  SDL_HapticClose(platform_layer->controllers[c_i].haptic);
+	}
+	SDL_GameControllerClose(platform_layer->controllers[c_i].controller);
+  } 
+
+  if (platform_layer->renderer.is_initialized) {
+	SDL_DestroyRenderer(platform_layer->renderer.renderer);  
+  }
+  if (platform_layer->window.is_initialized) {
+	SDL_DestroyWindow(platform_layer->window.window);
+  }
 
   if (platform_layer->sdl_net_is_initialized) SDLNet_Quit();
   if (platform_layer->sdl_ttf_is_initialized) TTF_Quit();
@@ -149,7 +246,7 @@ void platform_layer_cleanup(PlatformLayer* platform_layer)
   if (platform_layer->sdl_is_initialized) SDL_Quit();
 }
 
-STATUS platform_layer__initialize_window(PlatformLayer__Window* window)
+INTERNAL STATUS platform_layer__initialize_window(PlatformLayer__Window* window)
 {
   if (!window->title) {
     window->title = "Default Window Title";
@@ -261,85 +358,31 @@ void platform_layer_update(PlatformLayer* platform_layer, SDL_Event* event)
     platform_layer->mouse.delta_y = event->motion.yrel;
     break;
   case SDL_MOUSEBUTTONDOWN:
-    if (event->button.button == SDL_BUTTON_LEFT) {
-      platform_layer__digital_button_update(
-	    platform_layer->mouse.left_btn,
-	    true
-	  );
-	}
-    if (event->button.button == SDL_BUTTON_MIDDLE) {
-      platform_layer__digital_button_update(
-	    platform_layer->mouse.middle_btn,
-	    true
-	  );
-	}
-    if (event->button.button == SDL_BUTTON_RIGHT) {
-      platform_layer__digital_button_update(
-	    platform_layer->mouse.right_btn,
-	    true
-	  );
-	}
+    platform_layer__handle_mouse_button_down(
+	  platform_layer->mouse,
+	  event->button.button,
+	);
     break;
   case SDL_MOUSEBUTTONUP:
-    if (event->button.button == SDL_BUTTON_LEFT) {
-      platform_layer__digital_button_update(
-	    platform_layer->mouse.left_btn,
-	    false
-	  );
-	}
-    if (event->button.button == SDL_BUTTON_MIDDLE) {
-      platform_layer__digital_button_update(
-	    platform_layer->mouse.middle_btn,
-	    false
-	  );
-	}
-    if (event->button.button == SDL_BUTTON_RIGHT) {
-      platform_layer__digital_button_update(
-	    platform_layer->mouse.right_btn,
-	    false
-	  );
-	}
+    platform_layer__handle_mouse_button_up(
+	  platform_layer->mouse,
+	  event->button.button,
+	);
     break;
-  case SDL_MOUSEWHEEL:
-   platform_layer->mouse.scrolled_vertically = event->wheel.y;
-   break;
   case SDL_CONTROLLERDEVICEADDED:
-    if (platform_layer->num_active_controllers != 
-	  PLATFORM_LAYER_MAX_NUM_ACTIVE_CONTROLLERS) {
-      platform_layer->controllers[platform_layer.num_active_controllers] = \
-	    SDL_GameControllerOpen(event->cdevice.which);
-		  if (platform_layer->controllers[platform_layer.num_active_controllers] == NULL) {
-		    SDL_LogWarn(
-			  SDL_LOG_CATEGORY_SYSTEM, 
-			  "Unable to open controller %s", 
-			  SDL_GetError()
-			);
-		    break;	  
-		  }
-
-          SDL_Joystick* controller_joystick = SDL_GameControllerGetJoystick(controller->controller);
-		  controller->haptic_handle = SDL_HapticOpenFromJoystick(controller_joystick);
-		  if (controller->haptic_handle != NULL) {
-		    if (SDL_HapticRumbleInit(controller->haptic_handle)) {
-			  SDL_LogWarn(
-			    SDL_LOG_CATEGORY_SYSTEM, 
-				"Unable to initialize controller haptic handle %s", 
-				SDL_GetError()
-			  );
-			}
-		  }
-
+    platform_layer_handle_controller_added();
+	break;
+  case SDL_CONTROLLERDEVICEREMOVED:
+    for (size_t c_i = 0; c_i < PLATFORM_LAYER_MAX_NUM_CONTROLLERS; ++c_i) {
+	  if (platform_layer->controllers[c_i].joystick_index == event.cdevice.which) {
+		if (platform_layer->controllers[c_i].haptic != NULL) {
+	      SDL_HapticClose(platform_layer->controllers[c_i].haptic);
 		}
-		break;
-	  case SDL_CONTROLLERDEVICEREMOVED:
-		for (size_t controller_indexes_pos = 0; controller_indexes_pos < 4; ++controller_indexes_pos) {
-		  if (controller_indexes[controller_indexes_pos] == event.cdevice.which) {
-		    SDL_GameControllerClose(controllers[controller_indexes_pos]);
-		    --num_controllers_connected;
-		  }
-		}
-		break;
-
+		SDL_GameControllerClose(platform_layer->controllers[c_i]);
+		--platform_layer->num_active_controllers;
+	  }
+	}
+	break;
   case SDL_CONTROLLERBUTTONDOWN:
     platform_layer__handle_controller_btn_down();
   case SDL_CONTROLLERBUTTONUP:
@@ -348,16 +391,35 @@ void platform_layer_update(PlatformLayer* platform_layer, SDL_Event* event)
     platform_layer__handle_controller_axis_motion();		
   case SDL_FINGERDOWN:
     platform_layer__handle_finger_down();
-
-    bool is_existing_touch = false;	
-    for (size_t f_id = 0; f_id < platform_layer->num_active_touches; ++f_id) {
+	break;
+  case SDL_FINGERUP:
+    for (int f_id = 0; f_id < platform_layer->num_active_touches; ++f_id) {
 	  if (platform_layer->touches[f_id].id == event->tfinger.fingerId) {
         platform_layer__digital_button_update(
 	      platform_layer->touches[f_id].btn
+	      false
+	    );
+        platform_layer->touches[f_id].x = -1;
+        platform_layer->touches[f_id].y = -1;
+        platform_layer->touches[f_id].id = -1;
+	    --platform_layer->num_active_touches;	
+		break;
+	  }
+	}
+	break;
+}
+
+void platform_layer__handle_finger_down()
+{
+    bool is_existing_touch = false;	
+    for (size_t t_i = 0; t_i < platform_layer->num_active_touches; ++t_i) {
+	  if (platform_layer->touches[t_i].id == event->tfinger.fingerId) {
+        platform_layer__digital_button_update(
+	      platform_layer->touches[t_i].btn
 	      true
 	    );
-        platform_layer->touches[f_id].x = event->tfinger.x;
-        platform_layer->touches[f_id].y = event->tfinger.y;
+        platform_layer->touches[t_i].x = event->tfinger.x;
+        platform_layer->touches[t_i].y = event->tfinger.y;
 		is_existing_touch = true;
 		break;
 	  }
@@ -375,23 +437,8 @@ void platform_layer_update(PlatformLayer* platform_layer, SDL_Event* event)
       platform_layer->touches[platform_layer->num_active_touches++].id = \
 	    event->tfinger.fingerId;
 	}
-  } break;
-  case SDL_FINGERUP:
-    for (int f_id = 0; f_id < platform_layer->num_active_touches; ++f_id) {
-	  if (platform_layer->touches[f_id].id == event->tfinger.fingerId) {
-        platform_layer__digital_button_update(
-	      platform_layer->touches[f_id].btn
-	      false
-	    );
-        platform_layer->touches[f_id].x = -1;
-        platform_layer->touches[f_id].y = -1;
-        platform_layer->touches[f_id].id = -1;
-	    --platform_layer->num_active_touches;	
-		break;
-	  }
-	}
-	break;
 }
+
 
 void platform_layer__handle_controller_btn(
   u8 button_id,
@@ -479,13 +526,6 @@ void platform_layer__handle_controller_btn(
   }
 }
 
-void platform_layer__handle_controller_btn_down() {
-  platform_layer__handle_controller_btn(true);
-}
-void platform_layer__handle_controller_btn_up() {
-  platform_layer__handle_controller_btn(false);
-}
-
 void platform_layer__handle_controller_axis_motion()
 {
   if (event->caxis.axis == SDL_CONTROLLER_LEFTX) {
@@ -519,13 +559,53 @@ void platform_layer__digital_button_update()
   btn->is_released = btn->was_down && !is_down;
 }
 
-
-u32 platform_layer_restore(u32 interval, void* param)
+void platform_layer__handle_mouse_button(
+  PlatformLayer__Mouse* mouse, 
+  u8 button_id,
+  bool is_down
+) 
 {
-  PlatformLayer* platform_layer = (PlatformLayer *)param;	
-
-  platform_layer->mouse.scrolled_vertically = 0;
+    if (button_id == SDL_BUTTON_LEFT) {
+      platform_layer__digital_button_update(mouse->left_btn, is_down);
+	}
+    if (event->button.button == SDL_BUTTON_MIDDLE) {
+      platform_layer__digital_button_update(mouse->middle_btn, is_down);
+	}
+    if (event->button.button == SDL_BUTTON_RIGHT) {
+      platform_layer__digital_button_update(mouse->right_btn, is_down);
+	}
 }
+
+void platform_layer__handle_controller_added()
+{
+    if (platform_layer->num_active_controllers != 
+	  PLATFORM_LAYER_MAX_NUM_ACTIVE_CONTROLLERS) {
+      platform_layer->controllers[platform_layer.num_active_controllers] = \
+	    SDL_GameControllerOpen(event->cdevice.which);
+		  if (platform_layer->controllers[platform_layer.num_active_controllers] == NULL) {
+		    SDL_LogWarn(
+			  SDL_LOG_CATEGORY_SYSTEM, 
+			  "Unable to open controller %s", 
+			  SDL_GetError()
+			);
+		    break;	  
+		  }
+
+          SDL_Joystick* controller_joystick = SDL_GameControllerGetJoystick(controller->controller);
+		  controller->haptic_handle = SDL_HapticOpenFromJoystick(controller_joystick);
+		  if (controller->haptic_handle != NULL) {
+		    if (SDL_HapticRumbleInit(controller->haptic_handle)) {
+			  SDL_LogWarn(
+			    SDL_LOG_CATEGORY_SYSTEM, 
+				"Unable to initialize controller haptic handle %s", 
+				SDL_GetError()
+			  );
+			}
+		  }
+
+		}
+}
+
 
 /*
   platform_layer_intialize(&platform_layer);
@@ -535,5 +615,4 @@ u32 platform_layer_restore(u32 interval, void* param)
 	platform_player_update(&platform_layer, event);
 	}
 
-	platform_layer_restore();
 */
