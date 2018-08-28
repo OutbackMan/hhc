@@ -3,12 +3,6 @@
 
 #include <stdint.h>
 
-#define STATUS_MAP(X_ENTRY) \
-  X_ENTRY(SUCCESS, "Successful execution") \
-  X_ENTRY(FAILURE, "Failed execution")
-
-
-
 #define KILOBYTES(amount) ((amount) * 1024LL) 
 #define MEGABYTES(amount) (KILOBYTES(amount) * 1024LL) 
 #define GIGABYTES(amount) (MEGABYTES(amount) * 1024LL) 
@@ -94,5 +88,10 @@ typedef int8_t int8;
 typedef int16_t int16;
 typedef int32_t int32;
 typedef int64_t int64;
+
+typedef enum STATUS {
+  SUCCESS,
+  FAILURE
+};
 
 #endif

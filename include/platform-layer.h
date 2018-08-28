@@ -1,13 +1,5 @@
 #include <SDL2/SDL.h>
 
-bool is_executing_on_desktop = true;
-
-#ifdef __EMSCRIPTEN__
-	is_executing_on_desktop = EM_ASM_INT({
-				return typeof window.orientation === 'undefined';
-			});
-#endif
-
 DigitalButton touches[5];
 size_t num_active_touches;
 
@@ -19,28 +11,40 @@ manifest.json {
 
 #include <stdbool.h>
 
-typedef struct PlatformLayer {
-  bool are_on_touch_platform;
+#define PLATFORM_LAYER_ERROR_BUFFER_SIZE 256 
+#define PLATFORM_LAYER_MAX_NUM_KEYS 256
+#define PLATFORM_LAYER_MAX_NUM_CONTROLLERS 4
+#define PLATFORM_LAYER_MAX_NUM_TOUCHES 5
+#define PLATFORM_LAYER_INPUT_TEXT_BUFFER_SIZE 1024
 
-  PlatformLayer__Window* window;
-  PlatformLayer__Renderer* renderer;
+typedef struct PlatformLayer {
+  bool sdl_is_initialized;
+  bool sdl_mixer_is_initialized;
+  bool sdl_img_is_initialized;
+  bool sdl_ttf_is_initialized;
+  bool sdl_net_is_initialized;
+
+  char error_buffer[PLATFORM_LAYER_ERROR_BUFFER_SIZE];
+
+  bool are_on_mobile_device;
+
+  PlatformLayer__Window window;
+  PlatformLayer__Renderer renderer;
 
   PlatformLayer__DigitalButton keys[256]; 
   PlatformLayer__Controllers controllers[4];
   PlatformLayer__Mouse mouse;
+  PlatformLayer__Touches;
 
   PlatformLayer__Time time; 
 
-  PlatformLayer__Touches; // refer to unity api
-
-  char text[PLATFORM_LAYER_MAX_TEXT];
-  size_t text_length;
+  char input_text[PLATFORM_LAYER_INPUT_TEXT_BUFFER_SIZE];
+  size_t input_text_length;
 } 
 
 typedef struct PlatformLayer__DigitalButton {
 };
 
-#define MAX_NUM_CONTROLLERS 4
 typedef struct Input {
   const u8* cur_keyboard_state;
   const u8* prev_keyboard_state;
@@ -53,12 +57,6 @@ typedef struct Input {
   _InputControllers controllers[4];
   int num_controllers_connected;
 };
-extern struct Input global_input;
-
-extern bool global_want_to_run;
-
-#define PLATFORM_LAYER_MAX_CONTROLLERS 4
-#define PLATFORM_LAYER_MAX_KEYS 256
 
 // read_entire_file, write_to_entire_file
 // state

@@ -109,26 +109,6 @@ INTERNAL loop(void)
 
 int main(int argc, char** argv)
 {
-  SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
-  int exit_status;
-
-  if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
-    SDL_LogCritical(
-	  SDL_LOG_CATEGORY_SYSTEM, 
-	  "Unable to initialize SDL: %s", 
-	  SDL_GetError()
-	);  
-
-	exit_status = EXIT_FAILURE;
-	goto __exit;
-  } 
-
-  if (Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
-    SDL_LogCritical(
-	  SDL_LOG_CATEGORY_SYSTEM, 
-	  "Unable to initialize SDL mixer: %s", 
-	  Mix_GetError()
-	);  
 
 	exit_status = EXIT_FAILURE;
 	goto __exit;
