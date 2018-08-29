@@ -9,6 +9,14 @@
 
 int main(int argc, char** argv)
 {
+#if defined(WANT_DEBUG_BUILD)
+#define SDL_ASSERT_LEVEL 2
+  SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
+#else
+#define SDL_ASSERT_LEVEL 1
+  SDL_LogSetAllPriority(SDL_LOG_PRIORITY_CRITICAL);
+#endif
+
   HHC hhc_instance;
   if (hhc_initialize(&hhc_instance) != SUCCESS) {
     SDL_Log();
@@ -16,16 +24,21 @@ int main(int argc, char** argv)
   }
 
 #if defined(__EMSCRIPTEN__)
-  emscripten_set_main_loop_arg(hhc_update_and_render, &hhc, 0, 1);
+  const int REQUEST_ANIMATION_FRAME_RATE = 0;
+  const int SIMLUATE_INFINITE_LOOP = 1;
+  emscripten_set_main_loop_arg(
+    hhc_update_and_render, 
+	&hhc_instance, 
+	REQUEST_ANIMATION_FRAME_RATE, 
+	SIMULATE_INFINITE_LOOP
+  );
 #else
-  const int DESIRED_FPS = 30;
-  const float DESIRED_FRAME_TIME_MS = 1000.0f / DESIRED_FPS;
-  int update_counter = 0;
+  int monitor_refresh_rate = 60; // actually compute()
+  int game_refresh_rate = monitor_refresh_rate; // may have to limit
+  float seconds_per_frame = 1000.0f / (float)game_refresh_rate;
 
-  while (hhc->want_to_run) {
-    while (total_delta_time > 0.0f && update_counter < max_update_steps) {
-		
-	}  
+  while (hhc_instance.want_to_run) {
+    hhc_update_and_render(&hhc_instance);
   }
 #endif
 
@@ -64,4 +77,3 @@ void hhc_update_and_render(HHC* hhc)
     emscripten_cancel_main_loop();	  
   }
 #endif
-}

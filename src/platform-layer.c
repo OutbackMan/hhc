@@ -12,13 +12,6 @@
 
 STATUS platform_layer_initialize(PlatformLayer* platform_layer)
 {
-#if defined(WANT_DEBUG_BUILD)
-#define SDL_ASSERT_LEVEL 2
-  SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
-#else
-#define SDL_ASSERT_LEVEL 1
-  SDL_LogSetAllPriority(SDL_LOG_PRIORITY_CRITICAL);
-#endif
 
   SDL_assert(platform_layer != NULL);
 
@@ -32,20 +25,6 @@ STATUS platform_layer_initialize(PlatformLayer* platform_layer)
   platform_layer->renderer.is_initialized = false;
   platform_layer->window.is_initialized = false;
 
-  platform_layer_initialize_input(platform_layer);
-
-  if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
-    SDL_LogCritical(
-	  SDL_LOG_CATEGORY_SYSTEM, 
-	  "Unable to initialize SDL: %s", 
-	  SDL_GetError()
-	);  
-	platform_layer_cleanup(platform_layer);
-
-	return FAILURE;
-  } else {
-    platform_layer->sdl_is_initialized = true;
-  }
 
   int subsystem_flags = MIX_INIT_OGG;
   if (Mix_Init(subsystem_flags) != subsystem_flags) {
@@ -373,15 +352,7 @@ void platform_layer_update(PlatformLayer* platform_layer, SDL_Event* event)
     platform_layer_handle_controller_added();
 	break;
   case SDL_CONTROLLERDEVICEREMOVED:
-    for (size_t c_i = 0; c_i < PLATFORM_LAYER_MAX_NUM_CONTROLLERS; ++c_i) {
-	  if (platform_layer->controllers[c_i].joystick_index == event.cdevice.which) {
-		if (platform_layer->controllers[c_i].haptic != NULL) {
-	      SDL_HapticClose(platform_layer->controllers[c_i].haptic);
-		}
-		SDL_GameControllerClose(platform_layer->controllers[c_i]);
-		--platform_layer->num_active_controllers;
-	  }
-	}
+// insert
 	break;
   case SDL_CONTROLLERBUTTONDOWN:
     platform_layer__handle_controller_btn_down();
@@ -574,36 +545,6 @@ void platform_layer__handle_mouse_button(
     if (event->button.button == SDL_BUTTON_RIGHT) {
       platform_layer__digital_button_update(mouse->right_btn, is_down);
 	}
-}
-
-void platform_layer__handle_controller_added()
-{
-    if (platform_layer->num_active_controllers != 
-	  PLATFORM_LAYER_MAX_NUM_ACTIVE_CONTROLLERS) {
-      platform_layer->controllers[platform_layer.num_active_controllers] = \
-	    SDL_GameControllerOpen(event->cdevice.which);
-		  if (platform_layer->controllers[platform_layer.num_active_controllers] == NULL) {
-		    SDL_LogWarn(
-			  SDL_LOG_CATEGORY_SYSTEM, 
-			  "Unable to open controller %s", 
-			  SDL_GetError()
-			);
-		    break;	  
-		  }
-
-          SDL_Joystick* controller_joystick = SDL_GameControllerGetJoystick(controller->controller);
-		  controller->haptic_handle = SDL_HapticOpenFromJoystick(controller_joystick);
-		  if (controller->haptic_handle != NULL) {
-		    if (SDL_HapticRumbleInit(controller->haptic_handle)) {
-			  SDL_LogWarn(
-			    SDL_LOG_CATEGORY_SYSTEM, 
-				"Unable to initialize controller haptic handle %s", 
-				SDL_GetError()
-			  );
-			}
-		  }
-
-		}
 }
 
 
