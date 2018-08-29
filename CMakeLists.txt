@@ -5,6 +5,15 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/Modules)
 project(HHC VERSION 0.0.1 LANGUAGES C)
 
 # create game code library
+set(active_lib "" CACHE) # cache to persist, force to overide
+
+if(active_lib == "")
+  add_library("dynamic_lib")
+  active_lib = "dynamic_lib"
+else(EXISTS "dynamic_lib")
+  add_library("dynamic_lib_temp")
+  active_lib = "dynamic_lib_temp"
+endif(EXISTS "dynamic_lib"
 
 set(_hhc_sources
   src/hhc.c
