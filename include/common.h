@@ -96,4 +96,39 @@ typedef enum STATUS {
   FAILURE
 };
 
+
+// linux
+#include <sys/inotify>
+
+int inotify_fd = inotify_init();
+if (inotify_fd == < 0) // error
+int file_fd = inotify_add_watch(inotify_fd, "file.dll", IN_MODIFY);
+if (file_fd < 0) // error
+poll(inotify_fd)
+ 
+// windows
+#include <Windows.h>
+ --> FindNextChangeNotification --> FindCloseChangeNotification
+HANDLE find_change_object = FindFirstChangeNotificationA("dir_of_dll", FALSE, FILE_NOTIFY_CHANGE_LAST_WRITE);
+if (find_change_object == INVALID_HANDLE_VALUE) // error --> GetLastError()
+
+ // might be able to compare two file times
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #endif
