@@ -100,5 +100,11 @@ game_update_and_render(input, output (window and renderer))
 
 
 
-
-
+manifest.json {
+  "display": "fullscreen",
+  "orientation": "landscape"
+}
+<link rel="manifest" href="manifest.json" />
+/*
+  perhaps use configure_file() to get the path of the js binary
+*/
