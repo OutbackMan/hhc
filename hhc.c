@@ -16,11 +16,14 @@ int main(int argc, char** argv)
 #define SDL_ASSERT_LEVEL 1
   SDL_LogSetAllPriority(SDL_LOG_PRIORITY_CRITICAL);
 #endif
-
+  // initialize_input/output()
+  // game_code = load_library()
+  // game_code_initialize(hhc_instance)
+	
   HHC hhc_instance;
   if (hhc_initialize(&hhc_instance) != SUCCESS) {
     SDL_Log();
-	hhc_cleanup();
+    // failed code cleans itself up
   }
 
 #if defined(__EMSCRIPTEN__)
