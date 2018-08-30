@@ -1,25 +1,50 @@
 cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/Modules)
+# ensure building in build/ dir
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/Modules)
 project(HHC VERSION 0.0.1 LANGUAGES C)
 
-# create game code library
-set(active_lib "" CACHE) # cache to persist, force to overide
+set(dynamic_lib_name "dynamic_lib" CACHE STRING "Dynamic library name")
+add_library(${dynamic_lib_name})
+if(${dynamic_lib_name} STREQUAL "dynamic_lib")
+  set(dynamic_lib_name "dynamic_lib_temp" 
+    CACHE STRING "Dynamic library name" FORCE
+  )
+else(${dynamic_lib_name} STREQUAL "dynamic_lib")
+  set(dynamic_lib_name "dynamic_lib"
+    CACHE STRING "Dynamic library name" FORCE
+  )
+endif(${dynamic_lib_name} STREQUAL "dynamic_lib")
 
-if(active_lib == "")
-  add_library("dynamic_lib")
-  active_lib = "dynamic_lib"
-else(EXISTS "dynamic_lib")
-  add_library("dynamic_lib_temp")
-  active_lib = "dynamic_lib_temp"
-endif(EXISTS "dynamic_lib"
+struct dynamic_lib_holder;
+
+while (true)
+load_latest_lib(&dynamic_lib_holder);
+load_latest_lib()
+{
+  static bool already_loaded = false;
+
+  if (already_loaded) {
+    if !file_exists("build/dynamic_lib_temp") {
+      return;		
+	} else {
+     load(latest_file("build/dynamic_lib", "build/dynamic_lib_temp"));
+	}
+  } else {
+    load("build/dynamic_lib");
+	already_loaded = true;
+  }
+dynamic_lib_holder->update_and_render(input, output, assets);
+
+}
 
 set(_hhc_sources
   src/hhc.c
 )
 
 add_executable(hhc ${_hhc_sources})
+add_dependencies(hcc ${dynamic_lib_name})
 
 # PRIVATE only affects this library not programs that depend on it
 target_include_directories(hhc PRIVATE
