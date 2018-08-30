@@ -8,18 +8,7 @@ endif(NOT ${CMAKE_BINARY_DIR} STREQUAL ${CMAKE_SOURCE_DIR}/"build")
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/Modules)
 project(hhc VERSION 0.0.1 LANGUAGES C)
 
-set(hhc_lib_name "hhc_lib" CACHE STRING "Latest hhc dynamic library name")
-add_library(${hhc_lib_name} MODULE src/hhc.c)
-target_include_directories(${hhc_lib_name} PRIVATE ${CMAKE_SOURCE_DIR}/include)
-if(${hhc_lib_name} STREQUAL "hhc_lib")
-  set(hhc_lib_name "hhc_lib_temp" 
-    CACHE STRING "Latest hhc dynamic library name" FORCE
-  )
-else(${hhc_lib_name} STREQUAL "hhc_lib")
-  set(hhc_lib_name "hhc_lib"
-    CACHE STRING "Latest hhc dynamic library name" FORCE
-  )
-endif(${hhc_lib_name} STREQUAL "hhc_lib")
+add_library(hhc-lib MODULE src/hhc.c)
 
 add_executable(hhc src/input.c src/output.c src/state.c)
 # add_dependencies(hcc ${hhc_lib_name})

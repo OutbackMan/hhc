@@ -10,13 +10,6 @@
 #include <emscripten/emscripten.h>
 #endif
 
-#if defined(__unix__)
-#include <sys/stat.h>
-#include <unistd.h>
-#else
-#include <Windows.h>
-#endif
-
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -45,7 +38,7 @@ int main(int argc, char** argv)
   emscripten_set_main_loop_arg(
     hhc_update_and_render, 
 	&hhc_instance, 
-	REQUEST_ANIMATION_FRAME_RATE, 
+	FPS, 
 	SIMULATE_INFINITE_LOOP
   );
 #else
@@ -55,7 +48,12 @@ int main(int argc, char** argv)
   HHC hhc;
 
   while (state.want_to_run) {
-    reload_hhc_if_changed(&hhc);
+    if (copy_lib_if_changed()) {
+	  LoadLibrary();	
+
+      // function pointers 
+  	}
+
 	hhc.update_and_render(&hhc, &input, &output, &state);
   }
 #endif
@@ -63,13 +61,15 @@ int main(int argc, char** argv)
   return EXIT_SUCCESS;
 }
 
+#if defined(__unix__)
+#include <sys/stat.h>
+#include <unistd.h>
+#else
+#include <Windows.h>
+#endif
 INTERNAL void
 load_latest_hhc(HHC* hhc)
 {
-  static bool already_loaded = false;
-
-  // perhaps try and increment file name by 1
-
 #if defined(_MSC_VER)
   const char* hhc_lib_name = "build\\hhc_lib.dll";
   const char* hhc_lib_temp_name = "build\\hhc_lib_temp.dll";
@@ -81,29 +81,8 @@ load_latest_hhc(HHC* hhc)
   const char* hhc_lib_temp_name = "build\\hhc_lib_temp.so";
 #endif
 
-  if (already_loaded) {
-#if defined(_MSC_VER)
-    DWORD lib_attrib = GetFileAttributes(hhc_lib_temp_name);
-    if (!(lib_attrib & FILE_ATTRIBUTE_DIRECTORY)) {
-      return;	
-	} else {
-	 CONST FILETIME time1;
-	 CONST FILETIME time2;
-	 if (CompareFileTime(hhc_lib_name, hhc_lib_temp_name)) {
-		 
-	 }
-     load(latest_file("build/hhc_lib", "build/dynamic_lib_temp"));
-	}
-#elif defined(__unix__)
-    if (access(hcc_lib_temp_name, F_OK) == -1)
-      return;		
-	} else {
-     load(latest_file("build/hhc_lib", "build/dynamic_lib_temp"));
-	}
-#endif
-  } else {
-    load("build/hhc_lib");
-	already_loaded = true;
+  copy_file(hhc_lib_name, hhc_lib_temp_name);
+  load(hhc_lib_temp_name);
 }
 
 INTERNAL void
