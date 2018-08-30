@@ -10,9 +10,129 @@
 #include <emscripten/emscripten.h>
 #endif
 
+#if defined(__unix__)
+#include <sys/stat.h>
+#include <unistd.h>
+#else
+#include <Windows.h>
+#endif
+
 #include <stdbool.h>
 #include <stdlib.h>
 
+int main(int argc, char** argv)
+{
+#if defined(WANT_DEBUG_BUILD)
+#define SDL_ASSERT_LEVEL 2
+  SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
+#else
+#define SDL_ASSERT_LEVEL 1
+  SDL_LogSetAllPriority(SDL_LOG_PRIORITY_CRITICAL);
+#endif
+
+  Input input;
+  input_initialize(&input);
+
+  Output output;
+  output_initialize(&output);
+
+  State state;
+  state_initialize(&state);
+	
+#if defined(__EMSCRIPTEN__)
+  const int FPS = 60;
+  const int SIMLUATE_INFINITE_LOOP = 1;
+  emscripten_set_main_loop_arg(
+    hhc_update_and_render, 
+	&hhc_instance, 
+	REQUEST_ANIMATION_FRAME_RATE, 
+	SIMULATE_INFINITE_LOOP
+  );
+#else
+  int monitor_refresh_rate = 60; // actually compute()
+  float seconds_per_frame = 1000.0f / (float)game_refresh_rate;
+
+  HHC hhc;
+
+  while (state.want_to_run) {
+    reload_hhc_if_changed(&hhc);
+	hhc.update_and_render(&hhc, &input, &output, &state);
+  }
+#endif
+
+  return EXIT_SUCCESS;
+}
+
+INTERNAL void
+load_latest_hhc(HHC* hhc)
+{
+  static bool already_loaded = false;
+
+  // perhaps try and increment file name by 1
+
+#if defined(_MSC_VER)
+  const char* hhc_lib_name = "build\\hhc_lib.dll";
+  const char* hhc_lib_temp_name = "build\\hhc_lib_temp.dll";
+#elif defined(__APPLE__)
+  const char* hhc_lib_name = "build\\hhc_lib.dylib";
+  const char* hhc_lib_temp_name = "build\\hhc_lib_temp.dylib";
+#else
+  const char* hhc_lib_name = "build\\hhc_lib.so";
+  const char* hhc_lib_temp_name = "build\\hhc_lib_temp.so";
+#endif
+
+  if (already_loaded) {
+#if defined(_MSC_VER)
+    DWORD lib_attrib = GetFileAttributes(hhc_lib_temp_name);
+    if (!(lib_attrib & FILE_ATTRIBUTE_DIRECTORY)) {
+      return;	
+	} else {
+	 CONST FILETIME time1;
+	 CONST FILETIME time2;
+	 if (CompareFileTime(hhc_lib_name, hhc_lib_temp_name)) {
+		 
+	 }
+     load(latest_file("build/hhc_lib", "build/dynamic_lib_temp"));
+	}
+#elif defined(__unix__)
+    if (access(hcc_lib_temp_name, F_OK) == -1)
+      return;		
+	} else {
+     load(latest_file("build/hhc_lib", "build/dynamic_lib_temp"));
+	}
+#endif
+  } else {
+    load("build/hhc_lib");
+	already_loaded = true;
+}
+
+INTERNAL void
+unload_hhc();
+
+void hhc_update_and_render(HHC* hhc)
+{
+  SDL_Event event;
+  while (SDL_PollEvent(&event)) {
+    if (event->type == SDL_QUIT) {
+      hhc->want_to_run = false;		
+	}
+	input_update(&event, &hhc->input);
+	output_update(&event, &hhc->output);
+  }
+
+  // place directly into input file
+  if (hhc->input.recording_index) {
+    input_record();	  
+  }
+  if (hhc->input.playing_index) {
+    input_playback();
+  } 
+
+#if defined(__EMSCRIPTEN__)
+  if (!hhc->want_to_run) {
+    emscripten_cancel_main_loop();	  
+  }
+#endif
 
 INTERNAL loop(void)
 {
@@ -21,27 +141,6 @@ INTERNAL loop(void)
 
     SDL_Event event = {0}; 	  
 	while (SDL_PollEvent(&event)) {
-      global_input.cur_keyboard_state = SDL_GetKeyboardState(NULL); 
-	  global_input.cur_mouse_state = SDL_GetMouseState(&global_input.cur_mouse_x, &global_input.cur_mouse_y);
-
-      switch (event.type) {
-	  case SDL_QUIT:
-	    global_want_to_run = false;
-		break;
-	  case SDL_WINDOWEVENT:
-	    switch (event.window.event) {
-	    case SDL_WINDOWEVENT_CLOSE:
-		  want_to_run = false;
-		  break;
-		}  
-	    break;
-	  }
-
-     prev_keyboard_state = cur_keyboard_state;
-	 prev_mouse_state = cur_mouse_state; 
-	 prev_mouse_x = cur_mouse_x;
-	 prev_mouse_y = cur_mouse_y;
-	}
 
     if (SDL_SetRenderDrawColor(renderer, 255, 0, 0, SDL_ALPHA_OPAQUE) < 0) {
 	  SDL_LogWarn(
@@ -71,98 +170,3 @@ INTERNAL loop(void)
 #endif
 }
 
-int main(int argc, char** argv)
-{
-
-	exit_status = EXIT_FAILURE;
-	goto __exit;
-  }
-  
-  if (IMG_Init()) {
-	  
-	SDL_Quit();
-	return EXIT_FAILURE;
-  }
-
-  if (TTF_Init()) {
-	  
-  }
-
-  if ()
-
-  global_input = {
-    .cur_keyboard_state = SDL_GetKeyboardState(NULL),
-    .prev_keyboard_state = SDL_GetKeyboardState(NULL),
-    .cur_mouse_x = 0,
-    .cur_mouse_y = 0,
-    .prev_mouse_x = 0,
-    .prev_mouse_y = 0,
-	.cur_mouse_state = SDL_GetMouseState(NULL, NULL),
-	.prev_mouse_state = SDL_GetMouseState(NULL, NULL), 
-    .controllers = {NULL, NULL, NULL, NULL},
-	.num_controllers_connected = 0,
-	.controllers_haptic_support = {false, false, false, false},
-	._controller_indexes = {0, 0, 0, 0},
-  };
-
-  global_want_to_run = true;
-
-#if defined(__EMSCRIPTEN__)
-  emscripten_set_main_loop(loop, 0, 1);
-#else
-  while (global_want_to_run) {
-    loop();	  
-  }
-#endif
-
-  exit_status = EXIT_SUCCESS;
-
-__cleanup:
-  if (SDL_WasInit(SDL_INIT_EVERYTHING) != 0) SDL_Quit(); 
-
-
-  return exit_status;	
-}
-
-  SDL_Window* window = NULL; 
-  window = SDL_CreateWindow(
-             "HHC", 
-			 SDL_WINDOWPOS_CENTERED,
-			 SDL_WINDOWPOS_CENTERED,
-			 640,
-			 480,
-			 SDL_WINDOW_RESIZABLE
-		   );
-  if (window == NULL) {
-    SDL_LogCritical(
-	  SDL_LOG_CATEGORY_SYSTEM, 
-	  "Unable to create SDL window: %s", 
-	  SDL_GetError()
-	); 
-
-    goto __cleanup;
-  }
-
-  // sethint texture
-  SDL_Renderer* renderer = NULL;
-  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-  if (renderer == NULL) {
-    SDL_LogCritical(
-	  SDL_LOG_CATEGORY_SYSTEM, 
-	  "Unable to create SDL renderer: %s", 
-	  SDL_GetError()
-	); 
-
-    goto __cleanup;
-  }
-
-  } 
-
-__cleanup:
-  if (window != NULL) SDL_DestroyWindow(window);  
-  if (renderer != NULL) SDL_DestroyRenderer(renderer);
-
-  Mix_Quit();
-  SDL_Quit();	  
-  return EXIT_SUCCESS; 
-}

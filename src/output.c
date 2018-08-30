@@ -90,7 +90,7 @@ output_initialize(Output* output)
   output->are_on_mobile_device = false;
 #endif
 
-   output->window.title = "Default Window Title";
+   output->window.title = "HHC - ("COMPILER")";
    output->window.x = SDL_WINDOWPOS_CENTERED;	  
    output->window.y = SDL_WINDOWPOS_CENTERED;	  
    output->window.width = 400;	  

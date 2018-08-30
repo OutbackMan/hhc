@@ -1,55 +1,30 @@
 cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
-# ensure building in build/ dir
+if(NOT ${CMAKE_BINARY_DIR} STREQUAL ${CMAKE_SOURCE_DIR}/"build")
+  message(FATAL_ERROR "Must perform an out of tree build inside 'build'") 
+  return()
+endif(NOT ${CMAKE_BINARY_DIR} STREQUAL ${CMAKE_SOURCE_DIR}/"build")
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/Modules)
-project(HHC VERSION 0.0.1 LANGUAGES C)
+project(hhc VERSION 0.0.1 LANGUAGES C)
 
-set(dynamic_lib_name "dynamic_lib" CACHE STRING "Dynamic library name")
-add_library(${dynamic_lib_name})
-if(${dynamic_lib_name} STREQUAL "dynamic_lib")
-  set(dynamic_lib_name "dynamic_lib_temp" 
-    CACHE STRING "Dynamic library name" FORCE
+set(hhc_lib_name "hhc_lib" CACHE STRING "Latest hhc dynamic library name")
+add_library(${hhc_lib_name} MODULE src/hhc.c)
+target_include_directories(${hhc_lib_name} PRIVATE ${CMAKE_SOURCE_DIR}/include)
+if(${hhc_lib_name} STREQUAL "hhc_lib")
+  set(hhc_lib_name "hhc_lib_temp" 
+    CACHE STRING "Latest hhc dynamic library name" FORCE
   )
-else(${dynamic_lib_name} STREQUAL "dynamic_lib")
-  set(dynamic_lib_name "dynamic_lib"
-    CACHE STRING "Dynamic library name" FORCE
+else(${hhc_lib_name} STREQUAL "hhc_lib")
+  set(hhc_lib_name "hhc_lib"
+    CACHE STRING "Latest hhc dynamic library name" FORCE
   )
-endif(${dynamic_lib_name} STREQUAL "dynamic_lib")
+endif(${hhc_lib_name} STREQUAL "hhc_lib")
 
-struct dynamic_lib_holder;
+add_executable(hhc src/input.c src/output.c src/state.c)
+# add_dependencies(hcc ${hhc_lib_name})
 
-while (true)
-load_latest_lib(&dynamic_lib_holder);
-load_latest_lib()
-{
-  static bool already_loaded = false;
-
-  if (already_loaded) {
-    if !file_exists("build/dynamic_lib_temp") {
-      return;		
-	} else {
-     load(latest_file("build/dynamic_lib", "build/dynamic_lib_temp"));
-	}
-  } else {
-    load("build/dynamic_lib");
-	already_loaded = true;
-  }
-dynamic_lib_holder->update_and_render(input, output, assets);
-
-}
-
-set(_hhc_sources
-  src/hhc.c
-)
-
-add_executable(hhc ${_hhc_sources})
-add_dependencies(hcc ${dynamic_lib_name})
-
-# PRIVATE only affects this library not programs that depend on it
-target_include_directories(hhc PRIVATE
-  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
-)
+target_include_directories(hhc PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 # handlebuildtype
 
