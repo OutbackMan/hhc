@@ -3,36 +3,70 @@
 
 #include <SDL2/SDL.h>
 
-STATUS 
-input_initialize(Input* input)
+#include <stdbool.h>
+#include <stdlib.h>
+
+INTERNAL void
+input_set_sedentary_digital_btn(InputDigitalBtn* btn)
 {
-  SDL_assert(input != NULL);
+  SDL_assert(btn != NULL);
 
-  *input = {0}; // won't work
-
-  if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
-    SDL_LogCritical(
-	  SDL_LOG_CATEGORY_SYSTEM, 
-	  "Unable to initialize SDL: %s", 
-	  SDL_GetError()
-	);  
-	input_cleanup(input);
-	return FAILURE;
-  }
-
-  for (size_t j_i = 0; j_i < INPUT_MAX_NUM_CONTROLLERS; ++j_i) {
-    if (SDL_IsGameController(j_i)) {
-	  input__add_controller(input, j_i);
-	}
-  }
-
-  return SUCCESS;
+  btn->is_down = false;	
+  btn->is_pressed = false;	
+  btn->is_released = false;	
 }
 
 INTERNAL void
-input__add_controller(Input* input, u32 joystick_index)
+input_digital_btn_update(InputDigitalBtn* btn, bool is_down)
 {
-  SDL_assert(input != NULL);
+  SDL_assert(btn != NULL);
+
+  bool was_down = btn->is_down;	
+  btn->is_pressed = !was_down && is_down;
+  btn->is_down = is_down;
+  btn->is_released = !is_down && was_down;
+}
+
+INTERNAL void
+input_set_sedentary_analog_btn(InputAnalogBtn* btn)
+{
+  SDL_assert(btn != NULL);
+
+  input_set_sedentary_digital_btn(&btn->btn);
+  btn->x_value = 0;
+  btn->y_value = 0;
+}
+
+INTERNAL void
+input_set_sedentary_controller(InputController* controller)
+{
+  SDL_assert(controller != NULL);
+
+  controller->joystick_index = -1;	
+  controller->controller = NULL;
+  controller->haptic = NULL;
+  input_set_sedentary_digital_btn(&controller->dpad_left);
+  input_set_sedentary_digital_btn(&controller->dpad_up);
+  input_set_sedentary_digital_btn(&controller->dpad_right);
+  input_set_sedentary_digital_btn(&controller->dpad_down);
+  input_set_sedentary_analog_btn(&controller->left_stick);
+  input_set_sedentary_digital_btn(&controller->back_btn);
+  input_set_sedentary_digital_btn(&controller->start_btn);
+  input_set_sedentary_analog_btn(&controller->right_stick);
+  input_set_sedentary_digital_btn(&controller->a_btn); 
+  input_set_sedentary_digital_btn(&controller->b_btn); 
+  input_set_sedentary_digital_btn(&controller->x_btn); 
+  input_set_sedentary_digital_btn(&controller->y_btn); 
+  input_set_sedentary_digital_btn(&controller->left_shoulder_btn);
+  input_set_sedentary_analog_btn(&controller->left_trigger);
+  input_set_sedentary_digital_btn(&controller->right_shoulder_btn;
+  input_set_sedentary_analog_btn(&controller->right_trigger);
+}
+
+INTERNAL void
+input_controller_add(Input* input, u32 joystick_index)
+{
+  SDL_assert(input != NULL && joystick_index >= 0);
 
   input->controllers[j_i].controller = SDL_GameControllerOpen(j_i);
   if (input->controllers[j_i].controller == NULL) {
@@ -61,7 +95,7 @@ input__add_controller(Input* input, u32 joystick_index)
 }
 
 INTERNAL void
-input__remove_controller(Input* input, u32 joystick_index)
+input_controller_remove(Input* input, u32 joystick_index)
 {
   SDL_assert(input != NULL);
 
@@ -71,26 +105,244 @@ input__remove_controller(Input* input, u32 joystick_index)
 		
   SDL_GameControllerClose(input->controllers[j_i].controller);
 
-  input->controller[j_i] = {0}; // won't work
+  input_set_sedentary_controller(&input->controllers[j_i]);
 }
 
-void input_update(SDL_Event* event, Input* input)
+INTERNAL void
+input_controller_digital_btn_update(
+  Input* input, 
+  u32 joystick_index, 
+  u8 btn_id, 
+  bool is_down
+)
 {
-  SDL_assert(event != NULL && input != NULL);
+  SDL_assert(input != NULL);
+
+  InputController controller = input->controllers[joystick_index];
+
+  switch (btn_id) {
+  case SDL_CONTROLLER_BUTTON_DPAD_LEFT:	  
+    input_digital_btn_update(&controller.dpad_left, is_down);
+	break;
+  case SDL_CONTROLLER_BUTTON_DPAD_UP:
+    input_digital_btn_update(&controller.dpad_up, is_down);
+	break;
+  case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+    input_digital_btn_update(&controller.dpad_right, is_down);
+	break;
+  case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+    input_digital_btn_update(&controller.dpad_down, is_down);
+	break;
+  case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+    input_digital_btn_update(&controller.left_stick.btn, is_down);
+	break;
+  case SDL_CONTROLLER_BUTTON_BACK:
+    input_digital_btn_update(&controller.back_btn, is_down);
+	break;
+  case SDL_CONTROLLER_BUTTON_START:
+    input_digital_btn_update(&controller.start_btn, is_down);
+	break;
+  case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
+    input_digital_btn_update(&controller->right_stick.btn, is_down);
+	break;
+  case SDL_CONTROLLER_BUTTON_A:
+    input_digital_btn_update(&controller.a_btn, is_down);
+	break;
+  case SDL_CONTROLLER_BUTTON_B:
+    input_digital_btn_update(&controller.b_btn, is_down);
+	break;
+  case SDL_CONTROLLER_BUTTON_X:
+    input_digital_btn_update(&controller->x_btn, is_down);
+	break;
+  case SDL_CONTROLLER_BUTTON_Y:
+    input_digital_btn_update(&controller->y_btn, is_down);
+	break;
+  case SDL_CONTROLLER_BUTTON_LEFT_SHOULDER:
+    input_digital_btn_update(&controller->left_shoulder_btn, is_down);
+	break;
+  case SDL_CONTROLLER_BUTTON_RIGHT_SHOULDER:
+    input_digital_btn_update(&controller->right_shoulder_btn, is_down);
+	break;
+  NO_DEFAULT_CASE
+  }
+}
+
+INTERNAL void
+input_controller_analog_btn_update(
+  Input* input, 
+  u32 joystick_index,
+  u8 axis_id,
+  int16 axis_value
+)
+{
+  SDL_assert(input != NULL);
+
+  InputController controller = input->controllers[joystick_index];
+
+  switch (axis_id) {
+  case SDL_CONTROLLER_LEFTX:
+    controller.left_stick.x_value = axis_value;
+    break;
+  case SDL_CONTROLLER_LEFTY:
+    controller.left_stick.y_value = axis_value;
+    break;
+  case SDL_CONTROLLER_RIGHTX:
+    controller.right_stick.x_value = axis_value;
+    break;
+  case SDL_CONTROLLER_RIGHTY:
+    controller.right_stick.y_value = axis_value;
+    break;
+  case SDL_CONTROLLER_TRIGGERLEFT:
+    controller.left_trigger = axis_value;
+    break;
+  case SDL_CONTROLLER_TRIGGERRIGHT:
+    controller.right_trigger = axis_value;
+    break;
+  NO_DEFAULT_CASE
+  }
+}
+
+INTERNAL void
+input_mouse_digital_btn_update(InputMouse* mouse, u8 btn_id, bool is_down)
+{
+  SDL_assert(mouse != NULL);
+
+  switch (btn_id) {
+  case SDL_BUTTON_LEFT:
+    input_digital_btn_update(&mouse->left_btn, is_down);
+	break;
+  case SDL_BUTTON_MIDDLE:
+    input_digital_btn_update(&mouse->middle_btn, is_down);
+	break;
+  case SDL_BUTTON_RIGHT:
+    input_digital_btn_update(&mouse->right_btn, is_down);
+	break;
+  NO_DEFAULT_CASE
+  }
+}
+
+INTERNAL void
+input_touch_update(
+  Input* input, 
+  int64 finger_id, 
+  float x, 
+  float y, 
+  bool is_down
+)
+{
+  SDL_assert(input != NULL);
+
+  bool is_existing_touch = false;
+  for (size_t t_i = 0; t_i < INPUT_MAX_NUM_TOUCHES; ++t_i) {
+    if (input->touches[t_i].finger_id == finger_id) {
+      is_existing_touch = true;
+
+	  input_digital_btn_update(&input->touches[t_i].btn, is_down);
+	  if (is_down) {
+	    input->touches[t_i].x = x;
+	    input->touches[t_i].y = y;
+	  } else {
+		input->touches[t_i].finger_id = 0;
+	    input->touches[t_i].x = 0.0f;
+	    input->touches[t_i].y = 0.0f;
+		--input->num_touches;
+	  }
+	} 	  
+  }
+
+  if (!is_existing_touch && input->num_touches < INPUT_MAX_NUM_TOUCHES) {
+    input_digital_btn_update(&input->touches[input->num_touches].btn, is_down);
+	input->touches[input->num_touches].x = x;
+    input->touches[input->num_touches].y = y;
+    input->touches[input->num_touches++].finger_id = finger_id;
+  }
+}
+
+STATUS 
+input_initialize(Input* input)
+{
+  SDL_assert(input != NULL);
+
+  if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
+    SDL_LogCritical(
+	  SDL_LOG_CATEGORY_SYSTEM, 
+	  "Unable to initialize SDL: %s", 
+	  SDL_GetError()
+	);  
+	return FAILURE;
+  }
+
+  for (size_t k_i = 0; k_i < INPUT_MAX_NUM_KEYS; ++k_i) {
+    input_set_sedentary_digital_btn(&input->keys[k_i]);
+  }
+
+  for (size_t j_i = 0; j_i < INPUT_MAX_NUM_CONTROLLERS; ++j_i) {
+    if (SDL_IsGameController(j_i)) {
+	  input_add_controller(input, j_i);
+	} else {
+      input_set_sedentary_controller(&input->controller[j_i]);		
+	}
+  }
+  
+  input_set_sedentary_digital_btn(&input->mouse.left_btn);
+  input_set_sedentary_digital_btn(&input->mouse.middle_btn);
+  input_set_sedentary_digital_btn(&input->mouse.right_btn);
+  input->mouse.x = 0;
+  input->mouse.y = 0;
+  input->mouse.delta_x = 0;
+  input->mouse.delta_y = 0;
+
+  for (size_t t_i = 0; t_i < INPUT_MAX_NUM_TOUCHES; ++t_i) {
+    input_set_sedentary_digital_btn(&input->touches[t_i].btn);
+	input->touches[t_i].finger_id = 0;
+	input->touches[t_i].x = 0.0f;
+	input->touches[t_i].y = 0.0f;
+  }  
+
+  return SUCCESS;
+}
+
+
+void input_update(Input* input, SDL_Event* event)
+{
+  SDL_assert(input != NULL && event != NULL);
 
   switch (event->type) {
   case SDL_KEYDOWN: 
-    input__digital_button_update(
-	  input->keys[event->key.keysym.scancode],
-	  true
-	);
+    input_digital_btn_update(input->keys[event->key.keysym.scancode], true);
     break;
   case SDL_KEYUP:
-    input__digital_button_update(
-	  input->keys[event->key.keysym.scancode],
+    input_digital_btn_update(input->keys[event->key.keysym.scancode], false);
+    break;
+  case SDL_CONTROLLERDEVICEADDED:
+    input_controller_add(input, event->cdevice.which);
+	break;
+  case SDL_CONTROLLERDEVICEREMOVED:
+    input_controller_remove(input, event->cdevice.which);
+	break;
+  case SDL_CONTROLLERBUTTONDOWN:
+    input_controller_digital_btn_update(
+	  input, 
+	  event->cbutton.which, 
+	  event->cbutton.button, 
+	  true
+	);
+	break;
+  case SDL_CONTROLLERBUTTONUP:
+    input_controller_digital_btn_update(
+	  input, 
+	  event->cbutton.which, 
+	  event->cbutton.button, 
 	  false
 	);
-    break;
+	break;
+  case SDL_CONTROLLERAXISMOTION:
+    input_controller_analog_btn_update(
+      input,
+	  event->caxis.which,
+	  event->caxis.axis,
+	  event->caxis.value
+	);
   case SDL_MOUSEMOTION:
     input->mouse.x = event->motion.x;
     input->mouse.y = event->motion.y;
@@ -98,61 +350,42 @@ void input_update(SDL_Event* event, Input* input)
     input->mouse.delta_y = event->motion.yrel;
     break;
   case SDL_MOUSEBUTTONDOWN:
-    input__update_mouse_button(
-	  input->mouse,
-	  event->button.button,
-	  true
-	);
+    input_mouse_digital_btn_update(input->mouse, event->button.button, true);
     break;
   case SDL_MOUSEBUTTONUP:
-    input__update_mouse_button(
-	  input->mouse,
-	  event->button.button,
-	  false
-	);
+    input_mouse_digital_btn_update(input->mouse, event->button.button, false);
     break;
-  case SDL_CONTROLLERDEVICEADDED:
-    input__add_controller(input, event->cdevice.which);
-	break;
-  case SDL_CONTROLLERDEVICEREMOVED:
-    input__remove_controller(input, event->cdevice.which);
-	break;
-  case SDL_CONTROLLERBUTTONDOWN:
-    input__update_controller_btn();
-  case SDL_CONTROLLERBUTTONUP:
-    input__update_controller_btn();
-  case SDL_CONTROLLERAXISMOTION:
-    input__update_controller_axis();		
   case SDL_FINGERDOWN:
-    input__update_touch();
+    input_update_touch(
+      input,
+	  event->tfinger.fingerId,
+	  event->tfinger.x,
+	  event->tfinger.y,
+	  true
+	);
 	break;
   case SDL_FINGERUP:
-    input__update_touch();
-    for (int f_id = 0; f_id < input->num_active_touches; ++f_id) {
-	  if (input->touches[f_id].id == event->tfinger.fingerId) {
-        input__digital_button_update(
-	      input->touches[f_id].btn
-	      false
-	    );
-        input->touches[f_id].x = -1;
-        input->touches[f_id].y = -1;
-        input->touches[f_id].id = -1;
-	    --input->num_active_touches;	
-		break;
-	  }
-	}
+    input_update_touch(
+      input,
+	  event->tfinger.fingerId,
+	  event->tfinger.x,
+	  event->tfinger.y,
+	  false
+	);
 	break;
+  NO_DEFAULT_CASE
+  }
 }
 
 void input_cleanup(Input* input)
 {
-  for (size_t j_i = 0; j_i < INPUT_MAX_NUM_CONNECTED_CONTROLLERS; ++j_i) {
+  SDL_assert(input != NULL);
+
+  for (size_t j_i = 0; j_i < INPUT_MAX_NUM_CONTROLLERS; ++j_i) {
     if (input->controllers[j_i].controller != NULL) {
-      input__remove_controller(input, j_i);		
+      input_remove_controller(input, j_i);		
 	}	  
   }
 
   SDL_Quit();
 }
-
-void input_record/playback();
