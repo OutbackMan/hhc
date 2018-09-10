@@ -17,6 +17,47 @@ target_include_directories(hhc PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 # handlebuildtype
 
+make_minimum_required(VERSION 3.12.0 FATAL_ERROR)                              
+                                                                                
+# use clang 6.0.1                                                               
+# __COUNTER__, vectors?, float16,                                               
+# __attribute__((deprecated("msg"))                                             
+# enum { name __attribute__((deprecated("msg")) }                               
+# __builtins                                                                    
+                                                                                
+                                                                                
+project(Example VERSION 0.0.1 LANGUAGES C)                                      
+                                                                                
+# LLVM developers YouTube                                                       
+#if(${CMAKE_C_COMPILER} STREQUAL "Clang")                                       
+  string(REPLACE "." "" CLANG_VERSION ${CMAKE_C_COMPILER_VERSION})              
+  if(${CLANG_VERSION} LESS "600")                                               
+ # -Wall --> everything up until 1980                                           
+  "-Wformat=2 -Wall -Wextra -Wpedantic -Wfloat-equal -Wshadow -Wunreachable-code"
+  ""                                                                            
+  endif(${CLANG_VERSION} LESS "600")                                            
+                                                                                
+  target_compile_options()                                                      
+# also check for emscripten                                                     
+#endif(${CMAKE_C_COMPILER} STREQUAL "Clang")                                    
+                                                                                
+# set(SDL_SHARED OFF CACHE BOOL "Disable building sdl2 as a shared library")       
+# set(SDL_STATIC ON CACHE BOOL "Enable building sdl2 as a static library")         
+# add_subdirectory(${Example_SOURCE_DIR}/lib/SDL2)                              
+                                                                                
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Example_SOURCE_DIR}) # binary and dynamic libraries will reference files via assets/
+add_executable(Example src/example.c)                                           
+# pass ${CMAKE_SOURCE_DIR} to configure file.                                   
+                                                                                
+# target_link_libraries(Example SDL2)                                           
+# target_include_directories(Example PRIVATE ${SDL2_SOURCE_DIR}/include)        
+                                                                                
+~                                                                       
+
+
+
+
+
 find_package(SDL2 REQUIRED)
 target_include_directories(hhc PRIVATE ${SDL2_INCLUDE_DIRS})
 target_link_libraries(hhc PRIVATE ${SDL2_LIBRARIES})
